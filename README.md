@@ -1,153 +1,189 @@
-eYantra – AR-Based Circuit Visualization Lab
+CircuitVerse – AR-Based Virtual Electronics Laboratory
 
-eYantra is an Augmented Reality (AR)–based virtual electronics lab designed to help students visualize, understand, and interact with electronic circuits in real time.
-Using ArUco markers and a webcam, the system dynamically loads experiments and builds circuits step-by-step, showing components, connections, and explanations just like a real lab.
+CircuitVerse is an Augmented Reality (AR) based virtual electronics laboratory that helps students visualize and understand electronic circuits interactively. By using ArUco markers and computer vision, the system detects experiments and displays circuit components step-by-step on the screen, making electronics learning more intuitive and engaging.
 
-🚀 Key Features
+This project aims to enhance traditional electronics labs by providing real-time circuit visualization, interactive experiment guidance, and modular experiment configuration.
 
-📷 Marker-based AR interaction using ArUco codes
+🚀 Features
 
-🧩 Step-by-step circuit construction (press N to proceed)
+📷 Real-Time ArUco Marker Detection
 
-🔌 Supports multiple circuit types
+🔌 Step-by-Step Circuit Construction Visualization
 
-Series circuits
+⚡ Interactive Electronic Component Rendering
 
-Parallel circuits
+📚 Multiple Electronics Experiments
 
-LED circuits
+🧠 Conceptual Learning Through Visualization
 
-RC circuits
+⚙️ JSON-Based Experiment Configuration
 
-Transistor-based circuits
+🖥️ Works with Standard Webcam
 
-🖼️ Visual component rendering
+🧪 Experiments Implemented
 
-Resistor, LED, Capacitor, Diode, Transistor, Voltage Source, Ground
+Ohm’s Law Verification with Measurement Points
 
-🧠 Circuit logic engine
+Voltage Divider with Load
 
-Computes current, voltage drops (for supported circuits)
+RC Circuit – Charging and Discharging with LED
 
-🧱 Modular & extensible design
+LED Control using Raspberry Pi GPIO
 
-New experiments can be added via JSON
+Logic Threshold Demonstration using GPIO
 
-🎓 Education-first approach
+RC Circuit Charging & Discharging
 
-Mirrors how labs are taught in real classrooms
+Transistor as a Switch
 
-🛠️ Tech Stack
-Current Stack
+Threshold / Logic Demonstration Circuit
 
-Python 3.11
+🧩 Components Supported
 
-OpenCV (cv2 + ArUco module) – AR marker detection & rendering
+Voltage Source / Battery
 
-JSON – experiment definitions and step logic
+Resistor
 
-Custom Circuit Engine
+LED
 
-loader.py – loads experiment data
+Capacitor
 
-solver.py – solves basic circuits
+Diode
 
-PNG assets (RGBA) – component images
+Transistor
+
+Switch
+
+Ammeter
+
+Voltmeter
+
+Breadboard
+
+Jumper Wires
+
+Ground
+
+Raspberry Pi GPIO
+
+🧠 How It Works
+
+The webcam captures real-time video frames.
+
+OpenCV detects ArUco markers in the video stream.
+
+Each marker ID is mapped to a specific experiment.
+
+Experiment details are loaded from JSON configuration files.
+
+Circuit components are rendered step-by-step.
+
+Green wires display connections between components.
+
+Users navigate experiment steps using keyboard controls.
+
+⚙️ Tech Stack
+Programming
+
+Python 3
+
+Computer Vision
+
+OpenCV
+
+OpenCV Contrib (ArUco Module)
+
+Libraries
+
+NumPy
+
+JSON
+
+Tools
 
 Git & GitHub
 
-Python virtual environment (venv)
+VS Code
 
-Planned Enhancements
+Hardware
 
-Connection-aware auto layout
-
-Animated wire drawing
-
-Current flow visualization
-
-RC charging/discharging animation
-
-Optional web-based AR version
+Webcam
 
 📂 Project Structure
-Eyantra_AR-Lab/
+CircuitVerse/
 │
-├── assets/                # Component images (PNG with transparency)
-├── experiments/           # JSON experiment definitions
-├── circuit_engine/        # Circuit logic & solvers
-│   ├── loader.py
-│   └── solver.py
 ├── python_app/
-│   └── ar_main.py         # Main AR application
-├── markers/               # Generated ArUco markers
-├── venv/                  # Python virtual environment
+│   └── ar_main.py
+│
+├── circuit_engine/
+│   ├── loader.py
+│   ├── solver.py
+│   └── components.py
+│
+├── experiments/
+│   ├── exp1_ohms_law_measurement.json
+│   ├── exp2_voltage_divider_load.json
+│   ├── exp3_rc_charging_led.json
+│   └── ...
+│
+├── assets/
+│   ├── resistor.png
+│   ├── led.png
+│   ├── capacitor.png
+│   └── ...
+│
+├── markers/
+│   └── aruco markers
+│
 └── README.md
+🛠 Installation
+1️⃣ Install Python
 
-▶️ How to Run
-1️⃣ Activate Virtual Environment (Windows)
-venv\Scripts\activate
+Recommended version: Python 3.9 – 3.11
 
+2️⃣ Install Required Libraries
+pip install opencv-contrib-python numpy
+3️⃣ Run the Project
+python python_app/ar_main.py
+🎮 Controls
+Key	Action
+N	Next Step
+R	Reset Experiment
+Q	Quit Program
+🎯 Applications
 
-You should see:
+Virtual electronics laboratories
 
-(venv) Eyantra_AR-Lab>
+Educational demonstrations
 
-2️⃣ Run the AR Application
-python python_app\ar_main.py
-
-3️⃣ Controls
-
-N → Next step
-
-R → Reset current experiment
-
-Q → Quit application
-
-Show an ArUco marker to the camera to load the corresponding experiment.
-
-🧪 Experiments Included
-
-Ohm’s Law (Single Resistor)
-
-Series Resistors (Equivalent Resistance)
-
-Parallel Resistors (Current Division)
-
-LED with Current-Limiting Resistor
-
-Voltage Divider
-
-RC Charging & Discharging
-
-Transistor Basics
-
-Threshold / Logic Experiments
-
-Each experiment is fully configurable via JSON.
-
-🎯 Educational Use Case
-
-This project is intended for:
-
-Electronics & Electrical Labs
-
-Demonstrations during practical sessions
+Remote learning environments
 
 Concept visualization for beginners
 
-Hybrid / virtual lab environments
+AR-based engineering education
 
-Teachers can explain circuit behavior visually, not just theoretically.
+👨‍🏫 Mentor
 
-🔮 Future Scope
+Dr. Angayarkanni V
 
-Fully topology-aware circuit rendering
+👨‍💻 Developer
 
-Animated current flow
+Anshul Pagar
+B.Tech CSE
+SRM Institute of Science and Technology
 
-Auto-play demo mode
+🌟 Future Improvements
 
-Web-based AR version (Three.js / WebXR)
+Mobile AR implementation
 
-Support for more complex IC-based circuits
+3D circuit visualization
+
+Web-based AR version
+
+Fault detection in circuits
+
+Real-time current flow animation
+
+📜 License
+
+This project is developed for academic and educational purposes.
