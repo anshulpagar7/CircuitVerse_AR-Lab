@@ -1,0 +1,12 @@
+{
+  "id": 12, "domain": "biology", "type": "dna_replication",
+  "name": "DNA Structure and Replication",
+  "source": {"name": "NA", "voltage": 0},
+  "steps": [
+    {"type": "show_component", "target": "helix", "text": "DNA is a double helix of two complementary strands."},
+    {"type": "explain", "text": "Bases pair specifically: Adenine with Thymine, Guanine with Cytosine."},
+    {"type": "animate", "target": "unzip", "text": "Helicase unzips the strands at the replication fork."},
+    {"type": "animate", "target": "replicate", "text": "Each strand templates a new complementary strand - semiconservative replication."},
+    {"type": "explain", "text": "Two identical DNA molecules result, each with one old and one new strand."}
+  ]
+}
