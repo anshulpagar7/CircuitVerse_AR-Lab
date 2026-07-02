@@ -1,0 +1,13 @@
+{
+  "id": 10, "domain": "chemistry", "type": "electrolysis",
+  "name": "Electrolysis of Water",
+  "source": {"name": "NA", "voltage": 0},
+  "simulation": {"electrolyte": "dilute H2SO4", "voltage": 6.0},
+  "steps": [
+    {"type": "show_component", "target": "cell", "text": "Fill the electrolytic cell with water and a little dilute sulfuric acid."},
+    {"type": "show_component", "target": "electrodes", "text": "Insert two inert electrodes: cathode (-) and anode (+)."},
+    {"type": "show_component", "target": "battery", "text": "Connect a 6 V DC supply across the electrodes."},
+    {"type": "animate", "target": "electrolyse", "text": "Switch on. Gas bubbles form at both electrodes and collect in the tubes."},
+    {"type": "explain", "text": "Hydrogen collects at the cathode, oxygen at the anode, in a 2:1 volume ratio: 2 H2O -> 2 H2 + O2."}
+  ]
+}
