@@ -1,0 +1,12 @@
+{
+  "id": 14, "domain": "mechanics", "type": "projectile",
+  "name": "Projectile Motion",
+  "source": {"name": "NA", "voltage": 0},
+  "simulation": {"velocity_ms": 22.0, "angle_deg": 55},
+  "steps": [
+    {"type": "show_component", "target": "launcher", "text": "Launch a projectile at 22 m/s and 55 degrees."},
+    {"type": "explain", "text": "Horizontal velocity stays constant; vertical velocity changes under gravity."},
+    {"type": "animate", "target": "launch", "text": "Fire! The green vector is horizontal velocity, red is vertical, amber is the resultant."},
+    {"type": "explain", "text": "Maximum range for a given speed occurs at a launch angle of 45 degrees."}
+  ]
+}
