@@ -31,6 +31,32 @@ from circuit_engine.solver import solve, rc_voltage_at
 
 import hud
 import effects
+from domains import create_scene
+from menu import ExperimentMenu
+
+# ── catalog: subject → [(marker_id, display_name), ...] for the menu ──
+EXPERIMENT_CATALOG = {
+    "Physics": [
+        (0, "Ohm's Law Verification"),
+        (1, "Voltage Divider with Load"),
+        (2, "RC Charging with LED"),
+        (3, "GPIO LED Control"),
+        (4, "GPIO Logic Threshold"),
+        (5, "RC Charging / Discharging"),
+        (6, "Transistor as a Switch"),
+        (7, "Sensor Threshold Detection"),
+        (12, "Simple Pendulum"),
+        (13, "Projectile Motion"),
+    ],
+    "Chemistry": [
+        (8, "Acid-Base Titration"),
+        (9, "Electrolysis of Water"),
+    ],
+    "Biology": [
+        (10, "Animal Cell Anatomy"),
+        (11, "DNA Replication"),
+    ],
+}
 from hud import (ACCENT, PURPLE, GREEN, AMBER, RED, TEXT, MUTED,
                  glass_panel, text, text_size, chip, progress_bar, wrap_text,
                  value_tag, rc_graph)
@@ -48,6 +74,20 @@ EXPERIMENT_FILES = {
     5: "exp6_rc.json",
     6: "exp7_transistor.json",
     7: "exp8_threshold.json",
+    # ── v2 multi-domain (markers 8–13) ──
+    8:  "exp9_chem_titration.json",
+    9:  "exp10_chem_electrolysis.json",
+    10: "exp11_bio_cell.json",
+    11: "exp12_bio_dna.json",
+    12: "exp13_mech_pendulum.json",
+    13: "exp14_mech_projectile.json",
+}
+
+DOMAIN_ACCENT = {
+    "electronics": None,      # uses default cyan
+    "chemistry":   (180, 105, 255),
+    "biology":     (200, 120, 180),
+    "mechanics":   (11, 158, 245),
 }
 
 COMPONENT_IMAGES = {
@@ -305,12 +345,18 @@ class CircuitVerseAR:
         self.t_start = time.time()
         self.toast = None                          # (text, expiry)
 
+        # experiment menu (primary UI; markers still work as fallback)
+        self.menu = ExperimentMenu(EXPERIMENT_CATALOG)
+        self.menu.on_pick = self.select_experiment
+
     # ─────────────────────────── state ────────────────────────────
     def reset_experiment_state(self):
         self.circuit = None
         self.steps = []
         self.raw = {}
         self.exp_name = ""
+        self.domain = "electronics"
+        self.scene = None
         self.current_step = -1
         self.visible = []
         self.images = {}
@@ -318,6 +364,14 @@ class CircuitVerseAR:
         self.explain_msg = None                    # (text, shown_at)
         self.solution = None
         self.rc_t0 = None
+
+    def select_experiment(self, marker_id):
+        """Menu pick — load an experiment exactly as a marker would, but
+        pin it so a stray marker in view doesn't override the choice."""
+        self.load_marker(marker_id)
+        self.current_marker = marker_id
+        self.marker_candidate = None
+        self.marker_votes = 0
 
     def load_marker(self, marker_id):
         fname = EXPERIMENT_FILES.get(marker_id)
@@ -336,6 +390,8 @@ class CircuitVerseAR:
         self.reset_experiment_state()
         self.circuit, self.steps, self.raw = circuit, steps, raw
         self.exp_name = raw.get("name", fname)
+        self.domain = raw.get("domain", "electronics")
+        self.scene = create_scene(raw, self.W, self.H)
         self.current_marker = marker_id
         self.toast = (f"Experiment loaded — press N to begin", time.time() + 3.5)
 
@@ -344,6 +400,21 @@ class CircuitVerseAR:
         """Rebuild visible/connections deterministically from steps[0..upto]."""
         self.visible, self.connections = [], []
         self.explain_msg, self.rc_t0 = None, None
+
+        # domain scenes: drive the Scene object instead of the circuit builder
+        if self.scene is not None:
+            self.scene.reset()
+            for i in range(upto + 1):
+                step = self.steps[i]
+                st = step.get("type")
+                if st == "show_component":
+                    self.scene.show(step["target"])
+                elif st == "animate":
+                    self.scene.animate(step["target"])
+                elif st == "explain" and i == upto:
+                    self.explain_msg = (step.get("text", ""), time.time())
+            return
+
         for i in range(upto + 1):
             step = self.steps[i]
             st = step.get("type")
@@ -402,6 +473,17 @@ class CircuitVerseAR:
         if ids is not None:
             for c, mid in zip(corners_list, ids.flatten()):
                 effects.marker_lock(frame, c, str(mid))
+
+        # ── domain scenes render their own content area ──
+        if self.scene is not None:
+            self.scene.render(frame)
+            self._draw_topbar(frame)
+            self._draw_step_panel(frame)
+            if self.explain_msg:
+                self._draw_explain(frame)
+            self._draw_toast(frame)
+            self._draw_controls(frame)
+            return frame
 
         self.layout.update_smooth()
 
@@ -582,7 +664,7 @@ class CircuitVerseAR:
         text(frame, msg, x0 + 20, self.H - 94, 0.5, AMBER, 1, hud.FONT_S)
 
     def _draw_controls(self, frame):
-        s = "N next   B back   R reset   SPACE auto   Q quit"
+        s = "M menu   N next   B back   R reset   SPACE auto   Q quit"
         if self.autoplay:
             s = "AUTOPLAY ON   ·   " + s
         tw, _ = text_size(s, 0.42, 1, hud.FONT_S)
@@ -616,6 +698,10 @@ class CircuitVerseAR:
         cap = cv2.VideoCapture(self.camera_index)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.W)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.H)
+
+        win = "CircuitVerse v2.0 — AR Lab"
+        cv2.namedWindow(win)
+        cv2.setMouseCallback(win, self.menu.handle_mouse)
         print(__doc__)
 
         while True:
@@ -626,10 +712,13 @@ class CircuitVerseAR:
 
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             corners, ids = self.detect(gray)
-            self.handle_marker(ids)
+            # markers act only as a fallback; ignore them while menu is open
+            if not self.menu.expanded:
+                self.handle_marker(ids)
 
             frame = self.render(frame, corners, ids)
-            cv2.imshow("CircuitVerse v2.0 — AR Lab", frame)
+            self.menu.draw(frame)
+            cv2.imshow(win, frame)
 
             if self.autoplay and self.steps and \
                time.time() - self.last_autoplay > AUTOPLAY_INTERVAL:
@@ -640,6 +729,11 @@ class CircuitVerseAR:
                     self.autoplay = False
 
             key = cv2.waitKey(1) & 0xFF
+            if key == 255:
+                continue
+            # menu gets first crack at the key; if consumed, skip app controls
+            if self.menu.handle_key(key):
+                continue
             if key == ord("n"):
                 self.next_step()
             elif key == ord("b"):
@@ -647,10 +741,12 @@ class CircuitVerseAR:
             elif key == ord("r"):
                 self.current_step = -1
                 self._clear_build()
+                if self.scene:
+                    self.scene.reset()
             elif key == ord(" "):
                 self.autoplay = not self.autoplay
                 self.last_autoplay = 0
-            elif key == ord("q") or key == 27:
+            elif key == ord("q"):
                 break
 
         cap.release()
