@@ -1,0 +1,15 @@
+{
+  "id": 11, "domain": "biology", "type": "cell_anatomy",
+  "name": "Animal Cell Anatomy",
+  "source": {"name": "NA", "voltage": 0},
+  "steps": [
+    {"type": "show_component", "target": "membrane", "text": "The cell membrane controls what enters and leaves the cell."},
+    {"type": "show_component", "target": "cytoplasm", "text": "Cytoplasm is the jelly-like fluid where organelles float."},
+    {"type": "show_component", "target": "nucleus", "text": "The nucleus holds DNA and controls cell activity."},
+    {"type": "show_component", "target": "mitochondria", "text": "Mitochondria are the powerhouse - they make ATP energy."},
+    {"type": "show_component", "target": "er", "text": "The endoplasmic reticulum transports materials through the cell."},
+    {"type": "show_component", "target": "golgi", "text": "The Golgi apparatus packages and ships proteins."},
+    {"type": "show_component", "target": "ribosomes", "text": "Ribosomes build proteins from amino acids."},
+    {"type": "explain", "text": "Each organelle has a specific job - together they keep the cell alive and working."}
+  ]
+}
