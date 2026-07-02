@@ -1,0 +1,12 @@
+{
+  "id": 13, "domain": "mechanics", "type": "pendulum",
+  "name": "Simple Pendulum - Energy & Period",
+  "source": {"name": "NA", "voltage": 0},
+  "simulation": {"length_m": 1.2, "angle_deg": 35, "mass_kg": 0.5},
+  "steps": [
+    {"type": "show_component", "target": "setup", "text": "A bob of mass 0.5 kg hangs from a 1.2 m string."},
+    {"type": "explain", "text": "Pulled to 35 degrees, the bob has maximum potential energy and zero kinetic energy."},
+    {"type": "animate", "target": "swing", "text": "Release it. Watch energy trade between PE and KE as it swings."},
+    {"type": "explain", "text": "For small angles the period T = 2 pi sqrt(L/g) is independent of mass and amplitude."}
+  ]
+}
