@@ -19,8 +19,9 @@ def load_experiment(path: Union[str, Path]) -> Tuple[Circuit, List[dict], dict]:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    src = data["source"]
-    source = VoltageSource(name=src["name"], voltage=float(src["voltage"]))
+    src = data.get("source", {"name": "NA", "voltage": 0})
+    source = VoltageSource(name=src.get("name", "NA"),
+                           voltage=float(src.get("voltage", 0)))
 
     resistors = [
         Resistor(name=r["name"], resistance=float(r["resistance"]))
