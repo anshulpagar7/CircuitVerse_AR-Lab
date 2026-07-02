@@ -1,0 +1,17 @@
+{
+  "id": 9, "domain": "chemistry", "type": "titration",
+  "name": "Acid-Base Titration (HCl vs NaOH)",
+  "source": {"name": "NA", "voltage": 0},
+  "simulation": {
+    "acid": {"name": "HCl", "concentration": 0.1, "volume_ml": 25.0},
+    "base": {"name": "NaOH", "concentration": 0.1}
+  },
+  "steps": [
+    {"type": "show_component", "target": "stand", "text": "Set up the retort stand and clamp."},
+    {"type": "show_component", "target": "flask", "text": "Place 25 mL of 0.1 M HCl in the conical flask."},
+    {"type": "show_component", "target": "indicator", "text": "Add 2-3 drops of phenolphthalein indicator (stays colourless in acid)."},
+    {"type": "show_component", "target": "burette", "text": "Fill the burette with 0.1 M NaOH."},
+    {"type": "animate", "target": "titrate", "text": "Open the stopcock and titrate. Watch pH rise and the sharp jump at the equivalence point."},
+    {"type": "explain", "text": "At the equivalence point moles of acid equal moles of base. The indicator turns permanent pink just past pH 8.2."}
+  ]
+}
