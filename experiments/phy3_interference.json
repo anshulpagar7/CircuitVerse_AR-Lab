@@ -1,0 +1,7 @@
+{"id":3,"domain":"physics","type":"interference","name":"Young's Double-Slit Interference",
+"simulation":{"wavelength_nm":550,"slit_sep_mm":0.5,"screen_dist_m":1.5},
+"steps":[
+{"type":"show_component","target":"source","text":"Coherent light passes through two narrow slits."},
+{"type":"explain","text":"Each slit acts as a source of circular wavefronts that overlap."},
+{"type":"animate","target":"observe","text":"Where waves meet in phase, bright fringes form; out of phase, dark."},
+{"type":"explain","text":"Fringe spacing w = λD/d proves light behaves as a wave."}]}
