@@ -243,3 +243,176 @@ class DNAScene(Scene):
             cv2.circle(frame, (x0 + 26, ly - 4), 5, self.BASE_COLORS[b], -1, cv2.LINE_AA)
             cv2.circle(frame, (x0 + 46, ly - 4), 5, self.BASE_COLORS[c], -1, cv2.LINE_AA)
             text(frame, f"{b} = {c}", x0 + 60, ly, 0.42, TEXT, 1, FONT_S)
+
+
+# ═══════════════════════════════ neuron ════════════════════════════
+class NeuronScene(Scene):
+    """Neuron — action potential travelling down the axon, synapse firing."""
+
+    def __init__(self, raw, W, H):
+        super().__init__(raw, W, H)
+
+    def render(self, frame):
+        cx = int(self.W * 0.16); cy = int(self.H * 0.5)
+        t = self.elapsed()
+        fire = "fire" in self.animations
+
+        # dendrites
+        for a in range(-3, 4):
+            ang = math.radians(120 + a * 22)
+            ex = int(cx + math.cos(ang) * 70); ey = int(cy + math.sin(ang) * 70)
+            cv2.line(frame, (cx, cy), (ex, ey), (150, 130, 200), 2, cv2.LINE_AA)
+            cv2.line(frame, (ex, ey), (int(ex + math.cos(ang) * 24),
+                     int(ey + math.sin(ang) * 24)), (150, 130, 200), 1, cv2.LINE_AA)
+
+        # soma
+        glow = frame.copy(); cv2.circle(glow, (cx, cy), 42, (200, 120, 180), -1)
+        cv2.addWeighted(glow, 0.3, frame, 0.7, 0, frame)
+        cv2.circle(frame, (cx, cy), 32, (170, 100, 160), -1, cv2.LINE_AA)
+        cv2.circle(frame, (cx, cy), 14, (120, 60, 110), -1, cv2.LINE_AA)
+        text(frame, "soma", cx - 18, cy + 58, 0.36, MUTED, 1, FONT_S)
+
+        # axon
+        axon_x2 = int(self.W * 0.72)
+        cv2.line(frame, (cx + 32, cy), (axon_x2, cy), (180, 160, 210), 5, cv2.LINE_AA)
+        # myelin sheaths
+        for mx in range(cx + 80, axon_x2 - 40, 90):
+            cv2.ellipse(frame, (mx, cy), (30, 14), 0, 0, 360, (150, 190, 240), -1, cv2.LINE_AA)
+            cv2.ellipse(frame, (mx, cy), (30, 14), 0, 0, 360, (100, 130, 180), 1, cv2.LINE_AA)
+
+        # action potential pulse
+        if fire:
+            prog = (t * 0.6) % 1.0
+            px = int(cx + 32 + (axon_x2 - cx - 32) * prog)
+            glow = frame.copy()
+            cv2.circle(glow, (px, cy), 22, ACCENT, -1)
+            cv2.addWeighted(glow, 0.5, frame, 0.5, 0, frame)
+            cv2.circle(frame, (px, cy), 12, (255, 240, 150), -1, cv2.LINE_AA)
+            chip(frame, "+40 mV", px - 24, cy - 44, ACCENT, 0.36)
+            # synapse burst at the end
+            if prog > 0.9:
+                for _ in range(6):
+                    a = np.random.uniform(0, 2 * math.pi)
+                    r = np.random.uniform(6, 26)
+                    nx = int(axon_x2 + math.cos(a) * r); ny = int(cy + math.sin(a) * r)
+                    cv2.circle(frame, (nx, ny), 3, GREEN, -1, cv2.LINE_AA)
+
+        # axon terminals
+        for a in range(-2, 3):
+            ang = math.radians(a * 24)
+            ex = int(axon_x2 + math.cos(ang) * 34); ey = int(cy + math.sin(ang) * 34)
+            cv2.line(frame, (axon_x2, cy), (ex, ey), (180, 160, 210), 2, cv2.LINE_AA)
+            cv2.circle(frame, (ex, ey), 6, (150, 200, 160), -1, cv2.LINE_AA)
+
+        # membrane potential trace
+        gx, gy, gw, gh = _mini_scope(frame, self.W - 342, self.H - 210, 322, 165)
+        pts = []
+        for i in range(gw):
+            tt = i / gw * 6 - (t * 2 % 6)
+            # AP waveform
+            v = -70
+            x = (i / gw * 6 + t) % 6
+            if 2 < x < 2.4: v = -70 + (x - 2) / 0.4 * 110
+            elif 2.4 <= x < 2.9: v = 40 - (x - 2.4) / 0.5 * 115
+            elif 2.9 <= x < 3.4: v = -75 + (x - 2.9) / 0.5 * 5
+            pts.append((gx + i, int(gy + gh * (1 - (v + 80) / 130))))
+        cv2.polylines(frame, [np.array(pts, np.int32)], False, GREEN, 2, cv2.LINE_AA)
+
+        x0 = self.W - 264; y0 = 92
+        rows = [("RESTING", "-70 mV", ACCENT),
+                ("THRESHOLD", "-55 mV", AMBER),
+                ("PEAK", "+40 mV", RED),
+                ("SIGNAL", "FIRING" if fire else "resting", GREEN if fire else MUTED)]
+        glass_panel(frame, x0, y0, 248, 58 + 30 * len(rows), radius=16, border=PURPLE)
+        text(frame, "ACTION POTENTIAL", x0 + 16, y0 + 28, 0.5, PURPLE, 1, FONT_S)
+        cv2.line(frame, (x0 + 16, y0 + 38), (x0 + 232, y0 + 38), (70, 60, 45), 1)
+        for i, (k, v, c) in enumerate(rows):
+            yy = y0 + 64 + i * 30
+            text(frame, k, x0 + 16, yy, 0.44, MUTED, 1, FONT_S)
+            vw, _ = text_size(v, 0.48, 1, FONT_S)
+            text(frame, v, x0 + 232 - vw, yy, 0.48, c, 1, FONT_S)
+        return frame
+
+
+def _mini_scope(frame, x, y, w, h):
+    glass_panel(frame, x, y, w, h, radius=12, border=GREEN)
+    text(frame, "MEMBRANE POTENTIAL (mV)", x + 12, y + 20, 0.38, GREEN, 1, FONT_S)
+    gx, gy, gw, gh = x + 12, y + 28, w - 24, h - 42
+    for i in range(1, 4):
+        cv2.line(frame, (gx, gy + gh * i // 4), (gx + gw, gy + gh * i // 4), (50, 55, 45), 1)
+    return gx, gy, gw, gh
+
+
+# ═══════════════════════════ photosynthesis ════════════════════════
+class PhotosynthesisScene(Scene):
+    """Photosynthesis — light + CO2 + H2O -> glucose + O2 inside a leaf/chloroplast."""
+
+    def __init__(self, raw, W, H):
+        super().__init__(raw, W, H)
+        self.rng = np.random.default_rng(6)
+        self.o2 = []
+
+    def render(self, frame):
+        cx, cy = int(self.W * 0.40), int(self.H * 0.52)
+        t = self.elapsed()
+        active = "run" in self.animations
+
+        # chloroplast body
+        ov = frame.copy()
+        cv2.ellipse(ov, (cx, cy), (240, 150), 0, 0, 360, (60, 160, 90), -1)
+        cv2.addWeighted(ov, 0.18, frame, 0.82, 0, frame)
+        cv2.ellipse(frame, (cx, cy), (240, 150), 0, 0, 360, (100, 220, 130), 2, cv2.LINE_AA)
+
+        # thylakoid stacks (grana)
+        for gx in (cx - 120, cx - 40, cx + 60, cx + 150):
+            for k in range(4):
+                cv2.ellipse(frame, (gx, cy - 30 + k * 18), (26, 8), 0, 0, 360,
+                            (70, 180, 110), -1, cv2.LINE_AA)
+                cv2.ellipse(frame, (gx, cy - 30 + k * 18), (26, 8), 0, 0, 360,
+                            (40, 120, 70), 1, cv2.LINE_AA)
+
+        # sunlight photons streaming in
+        if active:
+            for k in range(6):
+                sx = int(self.W * 0.1 + ((t * 200 + k * 90) % (cx - 120)))
+                sy = int(self.H * 0.12 + k * 12)
+                cv2.line(frame, (sx, sy), (sx + 30, sy + 40), (0, 220, 255), 2, cv2.LINE_AA)
+            text(frame, "SUNLIGHT", int(self.W * 0.1), int(self.H * 0.1), 0.44, AMBER, 1, FONT_S)
+
+            # CO2 in from left, H2O from bottom
+            chip(frame, "CO₂ in", cx - 300, cy, (150, 150, 160), 0.4)
+            chip(frame, "H₂O in", cx - 60, cy + 170, (255, 180, 120), 0.4)
+
+            # O2 bubbles out top-right
+            if self.rng.random() < 0.4:
+                self.o2.append([cx + 180, cy - 60, self.rng.uniform(1.5, 3)])
+            alive = []
+            for b in self.o2:
+                b[1] -= b[2]; b[0] += 1
+                if b[1] > int(self.H * 0.1):
+                    cv2.circle(frame, (int(b[0]), int(b[1])), 6, (255, 220, 120), 1, cv2.LINE_AA)
+                    text(frame, "O₂", int(b[0]) - 8, int(b[1]) + 4, 0.32, GREEN, 1, FONT_S, shadow=False)
+                    alive.append(b)
+            self.o2 = alive[-30:]
+
+            # glucose forming in centre
+            pulse = 0.5 + 0.5 * math.sin(t * 3)
+            cv2.circle(frame, (cx, cy), int(20 + 6 * pulse), (80, 200, 255), 2, cv2.LINE_AA)
+            text(frame, "C₆H₁₂O₆", cx - 34, cy + 4, 0.4, AMBER, 1, FONT_S)
+
+        x0 = self.W - 264; y0 = 92
+        rows = [("LIGHT", "absorbed" if active else "—", AMBER if active else MUTED),
+                ("CO₂ + H₂O", "inputs", ACCENT),
+                ("GLUCOSE", "produced" if active else "—", GREEN if active else MUTED),
+                ("O₂", "released" if active else "—", GREEN if active else MUTED)]
+        glass_panel(frame, x0, y0, 248, 58 + 30 * len(rows) + 30, radius=16, border=GREEN)
+        text(frame, "PHOTOSYNTHESIS", x0 + 16, y0 + 28, 0.5, GREEN, 1, FONT_S)
+        cv2.line(frame, (x0 + 16, y0 + 38), (x0 + 232, y0 + 38), (70, 60, 45), 1)
+        for i, (k, v, c) in enumerate(rows):
+            yy = y0 + 64 + i * 30
+            text(frame, k, x0 + 16, yy, 0.44, MUTED, 1, FONT_S)
+            vw, _ = text_size(v, 0.48, 1, FONT_S)
+            text(frame, v, x0 + 232 - vw, yy, 0.48, c, 1, FONT_S)
+        text(frame, "6CO₂+6H₂O→C₆H₁₂O₆+6O₂", x0 + 12, y0 + 64 + 30 * len(rows) + 18,
+             0.4, PURPLE, 1, FONT_S)
+        return frame
