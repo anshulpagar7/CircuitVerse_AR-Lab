@@ -1,0 +1,6 @@
+{"id":6,"domain":"physics","type":"motor","name":"DC Motor — Force on a Current Loop",
+"simulation":{"field_T":0.4,"current_A":2.0,"loop_len_m":0.1},
+"steps":[
+{"type":"show_component","target":"setup","text":"A current-carrying loop sits in a magnetic field between N and S poles."},
+{"type":"explain","text":"Each side of the loop feels a force F = BIL in opposite directions."},
+{"type":"animate","target":"run","text":"The force pair creates a torque — the loop spins. That's a motor!"}]}
