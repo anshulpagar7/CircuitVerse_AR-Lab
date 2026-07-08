@@ -1,0 +1,7 @@
+{"id":19,"domain":"circuits","type":"parallel","name":"Parallel Circuit — Current Division",
+"simulation":{"voltage":6.0,"r1":100.0,"r2":200.0},
+"steps":[
+{"type":"show_component","target":"circuit","text":"Connect two resistors (100Ω, 200Ω) in parallel across 6V."},
+{"type":"show_component","target":"ammeters","text":"Place an ammeter in each branch and one for the total current."},
+{"type":"animate","target":"measure","text":"Each branch has the full 6V, but the smaller resistor draws more current."},
+{"type":"explain","text":"In parallel, voltage is constant and currents add. 1/Req = 1/R1 + 1/R2."}]}
