@@ -1,0 +1,6 @@
+{"id":7,"domain":"physics","type":"induction","name":"Electromagnetic Induction",
+"simulation":{"turns":200},
+"steps":[
+{"type":"show_component","target":"setup","text":"A coil of 200 turns is connected to a galvanometer."},
+{"type":"animate","target":"move","text":"Move a magnet through the coil — the needle deflects!"},
+{"type":"explain","text":"Faraday: EMF = -N dΦ/dt. Lenz's law sets the direction to oppose the change."}]}
