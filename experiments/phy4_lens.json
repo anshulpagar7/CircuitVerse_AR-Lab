@@ -1,0 +1,7 @@
+{"id":4,"domain":"physics","type":"lens","name":"Converging Lens Image Formation",
+"simulation":{"focal_cm":12,"object_cm":30,"object_h_cm":6},
+"steps":[
+{"type":"show_component","target":"setup","text":"An object stands beyond the focal point of a converging lens."},
+{"type":"explain","text":"Three principal rays locate the image: parallel, central, and focal."},
+{"type":"animate","target":"move","text":"Move the object and watch the image position and size change."},
+{"type":"explain","text":"Lens equation: 1/f = 1/v + 1/u. Magnification m = -v/u."}]}
