@@ -1,0 +1,6 @@
+{"id":9,"domain":"physics","type":"bohr","name":"Bohr Model — Atomic Spectra",
+"simulation":{},
+"steps":[
+{"type":"show_component","target":"setup","text":"An electron orbits the hydrogen nucleus in fixed energy levels."},
+{"type":"animate","target":"excite","text":"When it drops from n=3 to n=1, it emits a photon."},
+{"type":"explain","text":"Photon energy ΔE = E3 - E1 sets the spectral line wavelength λ = hc/ΔE."}]}
