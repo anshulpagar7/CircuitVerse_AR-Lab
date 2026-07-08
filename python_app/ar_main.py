@@ -349,8 +349,20 @@ class CircuitVerseAR:
 
         self.aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_5X5_100)
         try:
-            self.detector = aruco.ArucoDetector(self.aruco_dict,
-                                                aruco.DetectorParameters())
+            params = aruco.DetectorParameters()
+            # more forgiving thresholds for typical webcams / screen-shown markers
+            params.adaptiveThreshWinSizeMin = 3
+            params.adaptiveThreshWinSizeMax = 45
+            params.adaptiveThreshWinSizeStep = 6
+            params.minMarkerPerimeterRate = 0.02   # detect smaller/farther markers
+            params.maxMarkerPerimeterRate = 4.0
+            params.polygonalApproxAccuracyRate = 0.05
+            try:
+                # subpixel corner refinement when available (sharper, steadier)
+                params.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
+            except AttributeError:
+                pass
+            self.detector = aruco.ArucoDetector(self.aruco_dict, params)
         except AttributeError:                    # OpenCV < 4.7 fallback
             self.detector = None
 
@@ -631,9 +643,9 @@ class CircuitVerseAR:
             msg = step.get("text", "")
             col = {"show_component": ACCENT, "connect": GREEN,
                    "explain": PURPLE}.get(step.get("type"), TEXT)
-        lines = wrap_text(msg, 62)
-        ph = 46 + 26 * len(lines)
         pw = min(760, self.W - 380)
+        lines = hud.wrap_px(msg, pw - 40, scale=0.52)
+        ph = 46 + 26 * len(lines)
         glass_panel(frame, 16, self.H - ph - 16, pw, ph, radius=16, border=col)
         step_no = f"STEP {self.current_step + 1}/{len(self.steps)}" \
             if self.current_step >= 0 else "READY"
@@ -673,8 +685,8 @@ class CircuitVerseAR:
         msg, shown = self.explain_msg
         if time.time() - shown > 8:
             return
-        lines = wrap_text(msg, 52)
         pw = 520
+        lines = hud.wrap_px(msg, pw - 44, scale=0.52)
         ph = 56 + 26 * len(lines)
         x0 = (self.W - pw) // 2
         y0 = 96
@@ -707,18 +719,34 @@ class CircuitVerseAR:
 
     # ═══════════════════════════ main loop ════════════════════════
     def _on_mouse(self, event, x, y, flags, param):
-        """Remap window pixel coords to render-space before the menu sees them.
-        Fullscreen stretches the window, so raw coords won't match panel rects."""
-        try:
-            import cv2 as _cv2
-            rect = _cv2.getWindowImageRect("CircuitVerse v2.0 - AR Lab")
-            wx, wy, ww, wh = rect
-            if ww > 0 and wh > 0:
-                x = int(x * self.W / ww)
-                y = int(y * self.H / wh)
-        except Exception:
-            pass
+        """Map window pixel coords to render-space before the menu sees them.
+        In a normal window coords map 1:1. In fullscreen the image is scaled
+        and letterboxed, so we account for both scale and centering offset."""
+        if getattr(self, "fullscreen", False):
+            try:
+                import cv2 as _cv2
+                _, _, ww, wh = _cv2.getWindowImageRect(self._win_name)
+                if ww > 0 and wh > 0:
+                    scale = min(ww / self.W, wh / self.H)
+                    if scale > 0:
+                        off_x = (ww - self.W * scale) / 2
+                        off_y = (wh - self.H * scale) / 2
+                        x = int((x - off_x) / scale)
+                        y = int((y - off_y) / scale)
+            except Exception:
+                pass
         self.menu.handle_mouse(event, x, y, flags, param)
+
+    def _mirror_corners(self, corners):
+        """Flip detected marker corner x-coords to match the mirrored frame."""
+        if not corners:
+            return corners
+        out = []
+        for c in corners:
+            c = c.copy()
+            c[:, :, 0] = self.W - 1 - c[:, :, 0]
+            out.append(c)
+        return out
 
     def detect(self, gray):
         if self.detector:
@@ -754,10 +782,13 @@ class CircuitVerseAR:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.H)
 
         win = "CircuitVerse v2.0 - AR Lab"
+        self._win_name = win
         cv2.namedWindow(win, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.resizeWindow(win, self.W, self.H)
         cv2.setMouseCallback(win, self._on_mouse)
-        self.fullscreen = True
+        # start windowed (coords map 1:1 so the menu is reliably clickable);
+        # press F to go fullscreen
+        self.fullscreen = False
         print(__doc__)
 
         while True:
@@ -765,11 +796,17 @@ class CircuitVerseAR:
             if not ret:
                 print("Camera read failed."); break
             frame = cv2.resize(frame, (self.W, self.H))
-            # mirror so the camera view reads like a selfie (fixes "inverted")
-            frame = cv2.flip(frame, 1)
 
+            # IMPORTANT: detect on the UN-mirrored frame. ArUco markers are
+            # asymmetric, so a mirrored image never matches the dictionary.
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             corners, ids = self.detect(gray)
+
+            # now mirror the frame for a natural selfie view, and mirror the
+            # detected corner x-coords to match the flipped image
+            frame = cv2.flip(frame, 1)
+            corners = self._mirror_corners(corners)
+
             # markers act only as a fallback; ignore them while menu is open
             if not self.menu.expanded:
                 self.handle_marker(ids)
