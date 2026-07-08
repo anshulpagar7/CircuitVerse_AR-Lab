@@ -47,14 +47,41 @@ def create_scene(raw: dict, W: int, H: int):
     domain = raw.get("domain", "electronics")
     if domain == "electronics":
         return None
+    if domain == "physics":
+        from .physics import (SHMScene, ResonanceScene, InterferenceScene,
+                              LensScene, RefractionScene, MotorScene,
+                              InductionScene, PhotoelectricScene, BohrScene)
+        return {
+            "shm": SHMScene,
+            "resonance": ResonanceScene,
+            "interference": InterferenceScene,
+            "lens": LensScene,
+            "refraction": RefractionScene,
+            "motor": MotorScene,
+            "induction": InductionScene,
+            "photoelectric": PhotoelectricScene,
+            "bohr": BohrScene,
+        }[raw["type"]](raw, W, H)
     if domain == "chemistry":
-        from .chemistry import TitrationScene, ElectrolysisScene
+        from .chemistry import (TitrationScene, ElectrolysisScene,
+                               FlameTestScene, ReactionRateScene)
         return {"titration": TitrationScene,
-                "electrolysis": ElectrolysisScene}[raw["type"]](raw, W, H)
+                "electrolysis": ElectrolysisScene,
+                "flame_test": FlameTestScene,
+                "reaction_rate": ReactionRateScene}[raw["type"]](raw, W, H)
     if domain == "biology":
-        from .biology import CellScene, DNAScene
+        from .biology import (CellScene, DNAScene, NeuronScene, PhotosynthesisScene)
         return {"cell_anatomy": CellScene,
-                "dna_replication": DNAScene}[raw["type"]](raw, W, H)
+                "dna_replication": DNAScene,
+                "neuron": NeuronScene,
+                "photosynthesis": PhotosynthesisScene}[raw["type"]](raw, W, H)
+    if domain == "circuits":
+        from .circuits import (OhmsLawScene, SeriesResistorScene,
+                              ParallelResistorScene, WheatstoneScene)
+        return {"ohms_law": OhmsLawScene,
+                "series": SeriesResistorScene,
+                "parallel": ParallelResistorScene,
+                "wheatstone": WheatstoneScene}[raw["type"]](raw, W, H)
     if domain == "mechanics":
         from .mechanics import PendulumScene, ProjectileScene
         return {"pendulum": PendulumScene,
