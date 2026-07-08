@@ -1,0 +1,7 @@
+{"id":18,"domain":"circuits","type":"series","name":"Series Circuit — Voltage Division",
+"simulation":{"voltage":12.0,"resistors":[220,330,470]},
+"steps":[
+{"type":"show_component","target":"circuit","text":"Wire three resistors (220Ω, 330Ω, 470Ω) in series with a 12V supply."},
+{"type":"show_component","target":"ammeter","text":"An ammeter in series reads the single loop current."},
+{"type":"animate","target":"measure","text":"The same current flows through every resistor. Move the voltmeter to read each drop."},
+{"type":"explain","text":"In series, current is constant and voltages add: V = V1+V2+V3. Total R = R1+R2+R3."}]}
