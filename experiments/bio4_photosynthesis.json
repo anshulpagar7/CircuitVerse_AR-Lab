@@ -1,0 +1,6 @@
+{"id":15,"domain":"biology","type":"photosynthesis","name":"Photosynthesis",
+"simulation":{},
+"steps":[
+{"type":"show_component","target":"chloroplast","text":"Inside a chloroplast, stacks of thylakoids capture light."},
+{"type":"animate","target":"run","text":"Sunlight, CO₂ and water drive the reaction; oxygen bubbles out."},
+{"type":"explain","text":"6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂. Glucose stores the captured energy."}]}
