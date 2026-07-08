@@ -1,0 +1,6 @@
+{"id":12,"domain":"chemistry","type":"flame_test","name":"Flame Test — Metal Ions",
+"simulation":{"ions":["Li","Na","K","Cu","Ca"]},
+"steps":[
+{"type":"show_component","target":"burner","text":"Light the Bunsen burner with a clean blue flame."},
+{"type":"animate","target":"test","text":"Dip each metal salt into the flame and observe its colour."},
+{"type":"explain","text":"Each metal ion emits a characteristic colour as excited electrons fall back down."}]}
