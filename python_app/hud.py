@@ -25,6 +25,46 @@ FONT   = cv2.FONT_HERSHEY_DUPLEX
 FONT_S = cv2.FONT_HERSHEY_SIMPLEX
 
 
+# ── ASCII-safe text ──────────────────────────────────────────────────
+# OpenCV's putText renders only basic ASCII (Hershey fonts). Any other
+# glyph shows as a hollow "?" box. This table maps every symbol we use to
+# a clean ASCII equivalent so the HUD always looks professional. Applied
+# automatically inside text() and text_size() — callers can keep writing
+# natural strings with Greek letters, subscripts, arrows, etc.
+_ASCII_MAP = {
+    # Greek letters (spelled where read as a word, single-char where a variable)
+    "Ω": "Ohm", "ω": "w", "τ": "tau", "θ": "theta", "φ": "phi",
+    "λ": "lambda", "Δ": "d", "μ": "u", "π": "pi", "α": "a", "β": "b",
+    "ρ": "rho", "σ": "sigma", "Φ": "Phi", "Σ": "S",
+    # subscripts / superscripts -> plain digits (standard ASCII chemistry: CO2)
+    "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4", "₅": "5",
+    "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+    "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5",
+    "⁶": "6", "⁻": "-", "ⁿ": "n",
+    # math / arrows / punctuation
+    "×": "x", "·": ".", "÷": "/", "−": "-", "±": "+/-",
+    "→": "->", "←": "<-", "↑": "^", "↓": "v", "‹": "<", "›": ">",
+    "∞": "inf", "∝": "~", "≈": "~", "≤": "<=", "≥": ">=", "≠": "!=",
+    "°": "deg", "√": "sqrt", "∆": "d",
+    "✓": "OK", "✕": "x", "✗": "x", "☰": "=", "…": "...",
+    "—": "-", "–": "-", "‑": "-", "“": '"', "”": '"', "‘": "'", "’": "'",
+    "•": "*", "▸": ">", "○": "o", "●": "*",
+}
+
+
+def ascii_safe(s):
+    """Convert any string to an OpenCV-renderable ASCII string."""
+    if not isinstance(s, str):
+        s = str(s)
+    out = []
+    for ch in s:
+        if ord(ch) < 128:
+            out.append(ch)
+        else:
+            out.append(_ASCII_MAP.get(ch, "?"))
+    return "".join(out)
+
+
 # ─────────────────────────── primitives ──────────────────────────────
 def _rounded_mask(w: int, h: int, radius: int) -> np.ndarray:
     """Anti-aliased rounded-rectangle alpha mask (float 0..1)."""
@@ -38,7 +78,8 @@ def _rounded_mask(w: int, h: int, radius: int) -> np.ndarray:
 
 
 def glass_panel(frame, x, y, w, h, radius=18, tint=PANEL_TINT,
-                tint_strength=0.55, blur=21, border=ACCENT, border_alpha=0.35):
+                tint_strength=0.55, blur=21, border=ACCENT, border_alpha=0.35,
+                gradient=True, glow=True):
     """Frosted-glass panel drawn in place. Returns (x, y, w, h) clipped."""
     H, W = frame.shape[:2]
     x, y = max(0, x), max(0, y)
@@ -46,24 +87,42 @@ def glass_panel(frame, x, y, w, h, radius=18, tint=PANEL_TINT,
     if w <= 4 or h <= 4:
         return x, y, w, h
 
+    # outer glow bloom behind the panel
+    if glow:
+        gx, gy = max(0, x - 8), max(0, y - 8)
+        gx2, gy2 = min(W, x + w + 8), min(H, y + h + 8)
+        halo = frame[gy:gy2, gx:gx2].copy()
+        tintimg = np.full_like(halo, border)
+        halo = cv2.addWeighted(halo, 0.82, tintimg, 0.18, 0)
+        frame[gy:gy2, gx:gx2] = halo
+
     roi = frame[y:y + h, x:x + w]
     k = blur | 1
     glass = cv2.GaussianBlur(roi, (k, k), 0)
     tint_img = np.full_like(glass, tint)
     glass = cv2.addWeighted(glass, 1 - tint_strength, tint_img, tint_strength, 0)
 
-    # subtle top-edge highlight (light catches the glass)
+    # vertical gradient sheen (lighter at top, darker at bottom)
+    if gradient:
+        grad = np.linspace(1.14, 0.86, h, dtype=np.float32)[:, None, None]
+        glass = np.clip(glass.astype(np.float32) * grad, 0, 255).astype(np.uint8)
+
+    # top-edge specular highlight
     hl = glass.copy()
-    cv2.rectangle(hl, (0, 0), (w, max(2, h // 12)), (90, 70, 50), -1)
-    glass = cv2.addWeighted(glass, 0.85, hl, 0.15, 0)
+    cv2.rectangle(hl, (0, 0), (w, max(2, h // 10)), (110, 90, 65), -1)
+    glass = cv2.addWeighted(glass, 0.86, hl, 0.14, 0)
 
     mask = _rounded_mask(w, h, radius)[..., None]
     frame[y:y + h, x:x + w] = (glass * mask + roi * (1 - mask)).astype(np.uint8)
 
-    # border stroke
+    # double border stroke — bright inner + soft outer for a neon edge
     overlay = frame.copy()
-    _rounded_stroke(overlay, x, y, w, h, radius, border, 1)
+    _rounded_stroke(overlay, x, y, w, h, radius, border, 2)
     cv2.addWeighted(overlay, border_alpha, frame, 1 - border_alpha, 0, frame)
+    overlay2 = frame.copy()
+    _rounded_stroke(overlay2, x + 1, y + 1, w - 2, h - 2, radius,
+                    tuple(min(255, int(c * 1.4)) for c in border), 1)
+    cv2.addWeighted(overlay2, border_alpha * 0.5, frame, 1 - border_alpha * 0.5, 0, frame)
     return x, y, w, h
 
 
@@ -80,13 +139,14 @@ def _rounded_stroke(img, x, y, w, h, r, color, thick):
 
 
 def text(frame, s, x, y, scale=0.55, color=TEXT, thick=1, font=FONT, shadow=True):
+    s = ascii_safe(s)
     if shadow:
         cv2.putText(frame, s, (x + 1, y + 2), font, scale, (0, 0, 0), thick + 1, cv2.LINE_AA)
     cv2.putText(frame, s, (x, y), font, scale, color, thick, cv2.LINE_AA)
 
 
 def text_size(s, scale=0.55, thick=1, font=FONT):
-    (w, h), _ = cv2.getTextSize(s, font, scale, thick)
+    (w, h), _ = cv2.getTextSize(ascii_safe(s), font, scale, thick)
     return w, h
 
 

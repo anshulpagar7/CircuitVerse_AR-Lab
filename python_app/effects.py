@@ -94,3 +94,62 @@ def vignette(frame, strength=0.35):
         vignette._mask = (1 - strength) + strength * m[..., None]
         vignette._key = key
     np.multiply(frame, vignette._mask, out=frame, casting="unsafe")
+
+
+class Ambient:
+    """Cinematic floating dust/energy motes drifting across the whole frame."""
+
+    def __init__(self, n=60, seed=7):
+        self.rng = np.random.default_rng(seed)
+        self.p = None
+        self.n = n
+
+    def _init(self, W, H):
+        self.p = np.zeros((self.n, 4), np.float32)     # x, y, speed, size
+        self.p[:, 0] = self.rng.uniform(0, W, self.n)
+        self.p[:, 1] = self.rng.uniform(0, H, self.n)
+        self.p[:, 2] = self.rng.uniform(6, 26, self.n)
+        self.p[:, 3] = self.rng.uniform(0.6, 2.2, self.n)
+
+    def draw(self, frame, tint=(255, 200, 120)):
+        H, W = frame.shape[:2]
+        if self.p is None:
+            self._init(W, H)
+        t = time.time()
+        overlay = frame.copy()
+        for i in range(self.n):
+            x, y, sp, sz = self.p[i]
+            y -= sp * 0.016
+            x += math.sin(t * 0.5 + i) * 0.4
+            if y < -4:
+                y = H + 4
+                x = self.rng.uniform(0, W)
+            self.p[i, 0], self.p[i, 1] = x, y
+            a = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.5 + i))
+            col = tuple(int(c * a) for c in tint)
+            cv2.circle(overlay, (int(x), int(y)), int(sz), col, -1, cv2.LINE_AA)
+        cv2.addWeighted(overlay, 0.10, frame, 0.90, 0, frame)
+
+
+def bloom(frame, strength=0.18, thresh=205):
+    """Cheap bloom: blur the bright regions and add them back."""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, mask = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)
+    bright = cv2.bitwise_and(frame, frame, mask=mask)
+    bright = cv2.GaussianBlur(bright, (0, 0), 9)
+    cv2.addWeighted(frame, 1.0, bright, strength, 0, frame)
+
+
+def corner_flourish(frame, t):
+    """Animated HUD corner brackets — subtle sci-fi framing."""
+    H, W = frame.shape[:2]
+    from hud import ACCENT
+    L = 46
+    a = 0.4 + 0.25 * math.sin(t * 2)
+    col = tuple(int(c * a) for c in ACCENT)
+    ov = frame.copy()
+    for (cx, cy, dx, dy) in [(8, 8, 1, 1), (W - 8, 8, -1, 1),
+                             (8, H - 8, 1, -1), (W - 8, H - 8, -1, -1)]:
+        cv2.line(ov, (cx, cy), (cx + dx * L, cy), col, 2, cv2.LINE_AA)
+        cv2.line(ov, (cx, cy), (cx, cy + dy * L), col, 2, cv2.LINE_AA)
+    cv2.addWeighted(ov, 0.5, frame, 0.5, 0, frame)

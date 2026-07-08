@@ -22,6 +22,7 @@ DOMAIN_META = {
     "Physics":   {"color": (11, 158, 245),  "icon": "P", "key": "physics"},
     "Chemistry": {"color": (180, 105, 255),  "icon": "C", "key": "chemistry"},
     "Biology":   {"color": (200, 120, 180),  "icon": "B", "key": "biology"},
+    "Circuits":  {"color": (129, 185, 16),   "icon": "E", "key": "circuits"},
 }
 
 
@@ -128,8 +129,7 @@ class ExperimentMenu:
             if self.active_domain is None:
                 domains = list(self.catalog.keys())
                 if idx < len(domains):
-                    self.active_domain = list(DOMAIN_META.keys())[idx] \
-                        if idx < len(DOMAIN_META) else None
+                    self.active_domain = domains[idx]
                     self.sel_index = 0
             else:
                 exps = self.catalog.get(self.active_domain, [])
