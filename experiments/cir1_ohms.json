@@ -1,0 +1,7 @@
+{"id":17,"domain":"circuits","type":"ohms_law","name":"Ohm's Law — Ammeter & Voltmeter",
+"simulation":{"voltage":6.0,"resistance":100.0},
+"steps":[
+{"type":"show_component","target":"circuit","text":"Build a loop: 6V battery, a resistor, and an ammeter in series."},
+{"type":"show_component","target":"voltmeter","text":"Connect a voltmeter in parallel across the resistor."},
+{"type":"animate","target":"measure","text":"Close the switch. The ammeter reads current; the voltmeter reads voltage across R."},
+{"type":"explain","text":"Ohm's law: V = I×R. Divide the voltmeter reading by the ammeter reading to get R."}]}
