@@ -1,0 +1,6 @@
+{"id":8,"domain":"physics","type":"photoelectric","name":"Photoelectric Effect",
+"simulation":{"work_function_eV":2.3,"freq_PHz":0.8},
+"steps":[
+{"type":"show_component","target":"setup","text":"Light shines on a metal plate with work function 2.3 eV."},
+{"type":"animate","target":"illuminate","text":"Above the threshold frequency, electrons are ejected instantly."},
+{"type":"explain","text":"Einstein: KEmax = hf - φ. Light behaves as particles (photons)."}]}
