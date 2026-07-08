@@ -172,6 +172,7 @@ def progress_bar(frame, x, y, w, done, total, color=ACCENT):
 
 
 def wrap_text(s, max_chars):
+    """Character-based wrap (legacy). Prefer wrap_px for pixel-accurate fit."""
     words, lines, cur = s.split(), [], ""
     for w in words:
         if len(cur) + len(w) + 1 <= max_chars:
@@ -182,6 +183,26 @@ def wrap_text(s, max_chars):
     if cur:
         lines.append(cur)
     return lines
+
+
+def wrap_px(s, max_w, scale=0.52, thick=1, font=None):
+    """Wrap text so each line fits within max_w pixels when rendered.
+    Measures actual glyph widths (post ASCII-sanitize), so nothing overflows."""
+    if font is None:
+        font = FONT_S
+    words = ascii_safe(s).split()
+    lines, cur = [], ""
+    for w in words:
+        trial = f"{cur} {w}".strip()
+        tw, _ = cv2.getTextSize(trial, font, scale, thick)[0], None
+        if tw[0] <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines if lines else [""]
 
 
 # ─────────────────────────── composed widgets ─────────────────────────
