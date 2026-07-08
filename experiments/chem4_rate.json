@@ -1,0 +1,6 @@
+{"id":13,"domain":"chemistry","type":"reaction_rate","name":"Reaction Rate & Collision Theory",
+"simulation":{},
+"steps":[
+{"type":"show_component","target":"beaker","text":"Two reactants mix in a beaker at room temperature."},
+{"type":"animate","target":"heat","text":"Heat the beaker — watch the molecules speed up."},
+{"type":"explain","text":"Higher temperature means more frequent, more energetic collisions, so the reaction rate rises."}]}
