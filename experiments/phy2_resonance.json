@@ -1,0 +1,6 @@
+{"id":2,"domain":"physics","type":"resonance","name":"Resonance & Driven Oscillation",
+"simulation":{"natural_freq":2.0,"damping":0.18},
+"steps":[
+{"type":"show_component","target":"setup","text":"An oscillator with natural frequency f0 = 2 Hz."},
+{"type":"animate","target":"sweep","text":"Sweep the driving frequency and watch the amplitude respond."},
+{"type":"explain","text":"When drive frequency matches f0, amplitude peaks sharply — this is resonance."}]}
