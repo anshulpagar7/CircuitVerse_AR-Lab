@@ -1,0 +1,6 @@
+{"id":14,"domain":"biology","type":"neuron","name":"Neuron — Action Potential",
+"simulation":{},
+"steps":[
+{"type":"show_component","target":"neuron","text":"A neuron has dendrites, a soma, and a long myelinated axon."},
+{"type":"animate","target":"fire","text":"A stimulus triggers an action potential racing down the axon."},
+{"type":"explain","text":"The membrane depolarises to +40 mV, then repolarises. At the synapse, neurotransmitters release."}]}
