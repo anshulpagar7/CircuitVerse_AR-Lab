@@ -164,7 +164,7 @@ class ExperimentMenu:
     def draw(self, frame):
         mx, my = self.mouse
         if not self.expanded:
-            self._draw_button(frame, "MENU  ·  EXPERIMENTS", mx, my, closed=True)
+            self._draw_button(frame, "EXPERIMENTS", mx, my, closed=True)
             return
 
         self._draw_button(frame, "CLOSE  ✕", mx, my, closed=False)
