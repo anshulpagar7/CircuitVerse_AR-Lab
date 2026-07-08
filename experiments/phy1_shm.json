@@ -1,0 +1,7 @@
+{"id":1,"domain":"physics","type":"shm","name":"Simple Harmonic Motion",
+"simulation":{"k":20.0,"mass_kg":0.5,"amplitude_m":0.12},
+"steps":[
+{"type":"show_component","target":"setup","text":"A 0.5 kg mass hangs from a spring (k = 20 N/m)."},
+{"type":"explain","text":"Pull the mass down and it experiences a restoring force F = -kx."},
+{"type":"animate","target":"oscillate","text":"Release it. The mass oscillates in simple harmonic motion."},
+{"type":"explain","text":"The oscilloscope shows displacement as a perfect sine wave. Period T = 2π√(m/k)."}]}
