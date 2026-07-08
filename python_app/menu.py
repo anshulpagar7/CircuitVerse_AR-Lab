@@ -250,12 +250,26 @@ class ExperimentMenu:
         cv2.circle(frame, (rx + 20, ry + rh // 2), 13, col, 2, cv2.LINE_AA)
         tw, _ = text_size(icon, 0.5, 1, FONT_S)
         text(frame, icon, rx + 20 - tw // 2, ry + rh // 2 + 6, 0.5, col, 1, FONT_S)
-        # title + sub
-        text(frame, title, rx + 44, ry + (rh // 2) - 1 if sub else ry + rh // 2 + 5,
-             0.5 if not small else 0.46, TEXT if hovered else (210, 205, 200),
-             1, FONT_S)
+        # title truncated to fit between the icon and the number hint
+        tscale = 0.5 if not small else 0.46
+        avail = rw - 44 - 26          # left inset .. number-hint gutter
+        title = self._fit(title, avail, tscale)
+        title_y = (ry + rh // 2 - 1) if sub else (ry + rh // 2 + 5)
+        text(frame, title, rx + 44, title_y, tscale,
+             TEXT if hovered else (210, 205, 200), 1, FONT_S)
         if sub:
             text(frame, sub, rx + 44, ry + rh - 8, 0.38, MUTED, 1, FONT_S, shadow=False)
         # keyboard number hint on the right
         text(frame, str(num), rx + rw - 22, ry + rh // 2 + 5, 0.42,
              col if hovered else MUTED, 1, FONT_S, shadow=False)
+
+    @staticmethod
+    def _fit(s, max_w, scale):
+        """Truncate string with an ellipsis so it fits within max_w pixels."""
+        from hud import ascii_safe
+        s = ascii_safe(s)
+        if text_size(s, scale, 1, FONT_S)[0] <= max_w:
+            return s
+        while s and text_size(s + "...", scale, 1, FONT_S)[0] > max_w:
+            s = s[:-1]
+        return s + "..."
