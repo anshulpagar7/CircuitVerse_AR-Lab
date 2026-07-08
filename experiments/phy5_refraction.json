@@ -1,0 +1,6 @@
+{"id":5,"domain":"physics","type":"refraction","name":"Refraction & Total Internal Reflection",
+"simulation":{"n1":1.0,"n2":1.5},
+"steps":[
+{"type":"show_component","target":"setup","text":"A light ray crosses from air into glass."},
+{"type":"animate","target":"sweep","text":"Vary the angle of incidence and watch the ray bend."},
+{"type":"explain","text":"Snell's law: n1 sinθ1 = n2 sinθ2. Beyond the critical angle, total internal reflection occurs."}]}
