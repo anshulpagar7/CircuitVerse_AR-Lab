@@ -1,11 +1,11 @@
 # python_app/ar_main.py
 """
-╔══════════════════════════════════════════════════════════════════╗
-║  CircuitVerse v2.0 — AR Virtual Electronics Laboratory           ║
-║  Anshul Pagar · SRM Institute of Science and Technology          ║
-║                                                                  ║
-║  N next · B back · R reset · SPACE autoplay · Q quit             ║
-╚══════════════════════════════════════════════════════════════════╝
+==================================================================
+  CircuitVerse v2.0 - AR Science Laboratory
+  Anshul Pagar - SRM Institute of Science and Technology
+
+  M menu | N next | B back | R reset | SPACE autoplay | F fullscreen | Q quit
+==================================================================
 """
 
 import sys
@@ -37,24 +37,33 @@ from menu import ExperimentMenu
 # ── catalog: subject → [(marker_id, display_name), ...] for the menu ──
 EXPERIMENT_CATALOG = {
     "Physics": [
-        (0, "Ohm's Law Verification"),
-        (1, "Voltage Divider with Load"),
-        (2, "RC Charging with LED"),
-        (3, "GPIO LED Control"),
-        (4, "GPIO Logic Threshold"),
-        (5, "RC Charging / Discharging"),
-        (6, "Transistor as a Switch"),
-        (7, "Sensor Threshold Detection"),
-        (12, "Simple Pendulum"),
-        (13, "Projectile Motion"),
+        (0, "Simple Harmonic Motion"),
+        (1, "Resonance & Driven Oscillation"),
+        (2, "Young's Double-Slit"),
+        (3, "Converging Lens"),
+        (4, "Refraction & TIR"),
+        (5, "DC Motor (F = BIL)"),
+        (6, "Electromagnetic Induction"),
+        (7, "Photoelectric Effect"),
+        (8, "Bohr Model & Spectra"),
     ],
     "Chemistry": [
-        (8, "Acid-Base Titration"),
-        (9, "Electrolysis of Water"),
+        (9,  "Acid-Base Titration"),
+        (10, "Electrolysis of Water"),
+        (11, "Flame Test — Metal Ions"),
+        (12, "Reaction Rate & Collisions"),
     ],
     "Biology": [
-        (10, "Animal Cell Anatomy"),
-        (11, "DNA Replication"),
+        (13, "Animal Cell Anatomy"),
+        (14, "DNA Replication"),
+        (15, "Neuron — Action Potential"),
+        (16, "Photosynthesis"),
+    ],
+    "Circuits": [
+        (17, "Ohm's Law (A + V meters)"),
+        (18, "Series — Voltage Division"),
+        (19, "Parallel — Current Division"),
+        (20, "Wheatstone Bridge"),
     ],
 }
 from hud import (ACCENT, PURPLE, GREEN, AMBER, RED, TEXT, MUTED,
@@ -66,25 +75,36 @@ ASSETS_DIR = ROOT_DIR / "assets"
 EXPERIMENTS_DIR = ROOT_DIR / "experiments"
 
 EXPERIMENT_FILES = {
-    0: "exp1_ohms_law_measurement.json",
-    1: "exp2_voltage_divider_load.json",
-    2: "exp3_rc_charging_led.json",
-    3: "exp4_gpio_led_control.json",
-    4: "exp5_gpio_logic_threshold.json",
-    5: "exp6_rc.json",
-    6: "exp7_transistor.json",
-    7: "exp8_threshold.json",
-    # ── v2 multi-domain (markers 8–13) ──
-    8:  "exp9_chem_titration.json",
-    9:  "exp10_chem_electrolysis.json",
-    10: "exp11_bio_cell.json",
-    11: "exp12_bio_dna.json",
-    12: "exp13_mech_pendulum.json",
-    13: "exp14_mech_projectile.json",
+    # ── Physics (markers 0–8) ──
+    0: "phy1_shm.json",
+    1: "phy2_resonance.json",
+    2: "phy3_interference.json",
+    3: "phy4_lens.json",
+    4: "phy5_refraction.json",
+    5: "phy6_motor.json",
+    6: "phy7_induction.json",
+    7: "phy8_photoelectric.json",
+    8: "phy9_bohr.json",
+    # ── Chemistry (markers 9–12) ──
+    9:  "exp9_chem_titration.json",
+    10: "exp10_chem_electrolysis.json",
+    11: "chem3_flame.json",
+    12: "chem4_rate.json",
+    # ── Biology (markers 13–16) ──
+    13: "exp11_bio_cell.json",
+    14: "exp12_bio_dna.json",
+    15: "bio3_neuron.json",
+    16: "bio4_photosynthesis.json",
+    # ── Circuits (markers 17–20) ──
+    17: "cir1_ohms.json",
+    18: "cir2_series.json",
+    19: "cir3_parallel.json",
+    20: "cir4_wheatstone.json",
 }
 
 DOMAIN_ACCENT = {
     "electronics": None,      # uses default cyan
+    "physics":     (255, 170, 60),
     "chemistry":   (180, 105, 255),
     "biology":     (200, 120, 180),
     "mechanics":   (11, 158, 245),
@@ -249,7 +269,7 @@ def load_component_image(comp_id: str):
 
 
 def fmt_r(ohms):
-    return f"{ohms/1000:.1f} kΩ".replace(".0 ", " ") if ohms >= 1000 else f"{ohms:.0f} Ω"
+    return f"{ohms/1000:.1f} kOhm".replace(".0 ", " ") if ohms >= 1000 else f"{ohms:.0f} Ohm"
 
 
 def fmt_i(amps):
@@ -341,6 +361,7 @@ class CircuitVerseAR:
         self.autoplay = False
         self.last_autoplay = 0.0
         self.flow = effects.CurrentFlow()
+        self.ambient = effects.Ambient(n=64)
         self.layout = Layout(self.W, self.H)
         self.t_start = time.time()
         self.toast = None                          # (text, expiry)
@@ -464,9 +485,18 @@ class CircuitVerseAR:
         self.explain_msg, self.solution, self.rc_t0 = None, None, None
 
     # ═════════════════════════ rendering ══════════════════════════
+    def _domain_tint(self):
+        return {"chemistry": (255, 150, 210),
+                "biology":   (200, 160, 255),
+                "physics":   (255, 190, 120),
+                "circuits":  (150, 255, 180),
+                "mechanics": (120, 200, 255),
+                "electronics": (255, 200, 120)}.get(self.domain, (255, 200, 120))
+
     def render(self, frame, corners_list, ids):
         t = time.time() - self.t_start
-        effects.vignette(frame, 0.30)
+        effects.vignette(frame, 0.34)
+        self.ambient.draw(frame, tint=self._domain_tint())
         effects.scanline(frame, t)
 
         # marker lock rings
@@ -483,6 +513,8 @@ class CircuitVerseAR:
                 self._draw_explain(frame)
             self._draw_toast(frame)
             self._draw_controls(frame)
+            effects.bloom(frame, strength=0.16)
+            effects.corner_flourish(frame, t)
             return frame
 
         self.layout.update_smooth()
@@ -542,6 +574,8 @@ class CircuitVerseAR:
             self._draw_explain(frame)
         self._draw_toast(frame)
         self._draw_controls(frame)
+        effects.bloom(frame, strength=0.16)
+        effects.corner_flourish(frame, time.time() - self.t_start)
         return frame
 
     # ───────────────────────── HUD widgets ─────────────────────────
@@ -672,6 +706,20 @@ class CircuitVerseAR:
              GREEN if self.autoplay else MUTED, 1, hud.FONT_S)
 
     # ═══════════════════════════ main loop ════════════════════════
+    def _on_mouse(self, event, x, y, flags, param):
+        """Remap window pixel coords to render-space before the menu sees them.
+        Fullscreen stretches the window, so raw coords won't match panel rects."""
+        try:
+            import cv2 as _cv2
+            rect = _cv2.getWindowImageRect("CircuitVerse v2.0 - AR Lab")
+            wx, wy, ww, wh = rect
+            if ww > 0 and wh > 0:
+                x = int(x * self.W / ww)
+                y = int(y * self.H / wh)
+        except Exception:
+            pass
+        self.menu.handle_mouse(event, x, y, flags, param)
+
     def detect(self, gray):
         if self.detector:
             corners, ids, _ = self.detector.detectMarkers(gray)
@@ -696,12 +744,20 @@ class CircuitVerseAR:
 
     def run(self):
         cap = cv2.VideoCapture(self.camera_index)
+        if not cap.isOpened():
+            print("\n[CircuitVerse] Could not open camera index "
+                  f"{self.camera_index}.")
+            print("  - Make sure a webcam is connected and not used by another app.")
+            print("  - Try a different index: CircuitVerseAR(camera_index=1).run()\n")
+            return
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.W)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.H)
 
-        win = "CircuitVerse v2.0 — AR Lab"
-        cv2.namedWindow(win)
-        cv2.setMouseCallback(win, self.menu.handle_mouse)
+        win = "CircuitVerse v2.0 - AR Lab"
+        cv2.namedWindow(win, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.setMouseCallback(win, self._on_mouse)
+        self.fullscreen = True
         print(__doc__)
 
         while True:
@@ -709,6 +765,8 @@ class CircuitVerseAR:
             if not ret:
                 print("Camera read failed."); break
             frame = cv2.resize(frame, (self.W, self.H))
+            # mirror so the camera view reads like a selfie (fixes "inverted")
+            frame = cv2.flip(frame, 1)
 
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             corners, ids = self.detect(gray)
@@ -746,6 +804,11 @@ class CircuitVerseAR:
             elif key == ord(" "):
                 self.autoplay = not self.autoplay
                 self.last_autoplay = 0
+            elif key == ord("f"):
+                self.fullscreen = not self.fullscreen
+                cv2.setWindowProperty(
+                    win, cv2.WND_PROP_FULLSCREEN,
+                    cv2.WINDOW_FULLSCREEN if self.fullscreen else cv2.WINDOW_NORMAL)
             elif key == ord("q"):
                 break
 
