@@ -1,189 +1,106 @@
-CircuitVerse – AR-Based Virtual Electronics Laboratory
+# CircuitVerse v2 — AR Multi-Domain Science Laboratory
 
-CircuitVerse is an Augmented Reality (AR) based virtual electronics laboratory that helps students visualize and understand electronic circuits interactively. By using ArUco markers and computer vision, the system detects experiments and displays circuit components step-by-step on the screen, making electronics learning more intuitive and engaging.
+An Augmented Reality science lab that turns any webcam into an interactive,
+physics-accurate learning platform spanning **Physics, Chemistry, Biology, and Circuits**.
+Browse experiments from a cinematic glass menu, or show a printed ArUco marker.
 
-This project aims to enhance traditional electronics labs by providing real-time circuit visualization, interactive experiment guidance, and modular experiment configuration.
+![version](https://img.shields.io/badge/version-2.0-00d4ff) ![python](https://img.shields.io/badge/python-3.9%E2%80%933.12-blue) ![experiments](https://img.shields.io/badge/experiments-21-7c3aed) ![domains](https://img.shields.io/badge/subjects-4-f59e0b)
 
-🚀 Features
+## Two ways in
 
-📷 Real-Time ArUco Marker Detection
+1. **Menu (primary)** — click `☰ MENU` or press `M`, pick a subject, pick an
+   experiment. Full mouse + keyboard (arrows, Enter, number keys).
+2. **ArUco markers (fallback)** — show marker 0–20 to the camera; it loads
+   automatically. Print `markers/CircuitVerse_Markers.pdf` at 100% scale.
 
-🔌 Step-by-Step Circuit Construction Visualization
+Both paths run the same engine, fullscreen, with the camera mirrored.
 
-⚡ Interactive Electronic Component Rendering
+## 21 experiments, all live vector simulations
 
-📚 Multiple Electronics Experiments
+### ⚡ Physics (9)
+| # | Experiment | What you see |
+|---|---|---|
+| 0 | Simple Harmonic Motion | Mass-spring + live oscilloscope sine trace |
+| 1 | Resonance | Frequency sweep, resonance peak curve |
+| 2 | Young's Double-Slit | Circular wavefronts + interference fringes |
+| 3 | Converging Lens | Three-ray diagram, live image formation |
+| 4 | Refraction & TIR | Snell's law bending, total internal reflection |
+| 5 | DC Motor | Field, current loop, F = BIL torque, rotation |
+| 6 | EM Induction | Magnet through coil, galvanometer needle, Faraday EMF |
+| 7 | Photoelectric Effect | Photons ejecting electrons, threshold frequency |
+| 8 | Bohr Model | Electron orbits, energy-level jumps, photon emission |
 
-🧠 Conceptual Learning Through Visualization
+### 🧪 Chemistry (4)
+Acid-Base Titration (live pH curve) · Electrolysis (2:1 H₂:O₂ bubbles) ·
+Flame Test (characteristic ion colours) · Reaction Rate (collision theory + heat)
 
-⚙️ JSON-Based Experiment Configuration
+### 🔬 Biology (4)
+Animal Cell Anatomy · DNA Replication · Neuron Action Potential (live membrane trace) ·
+Photosynthesis (chloroplast, light → glucose + O₂)
 
-🖥️ Works with Standard Webcam
+### ⚡ Circuits (4) — real instruments, animated meters
+| # | Experiment | Instruments |
+|---|---|---|
+| 17 | Ohm's Law | Ammeter (series) + Voltmeter (parallel) on a live loop |
+| 18 | Series — Voltage Division | Ammeter + movable voltmeter, per-resistor drops |
+| 19 | Parallel — Current Division | Total + per-branch ammeters, current splits |
+| 20 | Wheatstone Bridge | Galvanometer null detection for an unknown Rx |
 
-🧪 Experiments Implemented
+Each circuit is drawn as animated vector art with analog dial meters whose
+needles swing to the live reading, glowing wires, and current-flow particles.
+Physics is computed by `circuit_engine.solver`.
 
-Ohm’s Law Verification with Measurement Points
+## What makes it special
 
-Voltage Divider with Load
+- **Real physics, computed live.** SHM integrates the equation of motion; the lens solves 1/f = 1/v + 1/u each frame; refraction applies Snell's law with a real critical angle; the photoelectric verdict uses KE = hf − φ.
+- **Cinematic "maximum-wow" visuals** — gradient frosted glass, neon double borders, outer-glow bloom on every bright element, drifting ambient motes tinted per subject, animated HUD corner brackets, and a vignette for depth.
+- **Fullscreen + mirrored camera** — launches fullscreen (toggle with `F`); the feed is mirrored so it reads naturally.
+- **No boring asset PNGs** — every experiment is drawn as crisp animated vector art, the same technique across all three subjects.
 
-RC Circuit – Charging and Discharging with LED
+## Quick start
 
-LED Control using Raspberry Pi GPIO
-
-Logic Threshold Demonstration using GPIO
-
-RC Circuit Charging & Discharging
-
-Transistor as a Switch
-
-Threshold / Logic Demonstration Circuit
-
-🧩 Components Supported
-
-Voltage Source / Battery
-
-Resistor
-
-LED
-
-Capacitor
-
-Diode
-
-Transistor
-
-Switch
-
-Ammeter
-
-Voltmeter
-
-Breadboard
-
-Jumper Wires
-
-Ground
-
-Raspberry Pi GPIO
-
-🧠 How It Works
-
-The webcam captures real-time video frames.
-
-OpenCV detects ArUco markers in the video stream.
-
-Each marker ID is mapped to a specific experiment.
-
-Experiment details are loaded from JSON configuration files.
-
-Circuit components are rendered step-by-step.
-
-Green wires display connections between components.
-
-Users navigate experiment steps using keyboard controls.
-
-⚙️ Tech Stack
-Programming
-
-Python 3
-
-Computer Vision
-
-OpenCV
-
-OpenCV Contrib (ArUco Module)
-
-Libraries
-
-NumPy
-
-JSON
-
-Tools
-
-Git & GitHub
-
-VS Code
-
-Hardware
-
-Webcam
-
-📂 Project Structure
-CircuitVerse/
-│
-├── python_app/
-│   └── ar_main.py
-│
-├── circuit_engine/
-│   ├── loader.py
-│   ├── solver.py
-│   └── components.py
-│
-├── experiments/
-│   ├── exp1_ohms_law_measurement.json
-│   ├── exp2_voltage_divider_load.json
-│   ├── exp3_rc_charging_led.json
-│   └── ...
-│
-├── assets/
-│   ├── resistor.png
-│   ├── led.png
-│   ├── capacitor.png
-│   └── ...
-│
-├── markers/
-│   └── aruco markers
-│
-└── README.md
-🛠 Installation
-1️⃣ Install Python
-
-Recommended version: Python 3.9 – 3.11
-
-2️⃣ Install Required Libraries
-pip install opencv-contrib-python numpy
-3️⃣ Run the Project
+```bash
+pip install -r requirements.txt
 python python_app/ar_main.py
-🎮 Controls
-Key	Action
-N	Next Step
-R	Reset Experiment
-Q	Quit Program
-🎯 Applications
+```
 
-Virtual electronics laboratories
+## Controls
 
-Educational demonstrations
+| Key / Action | Effect |
+|---|---|
+| `M` or ☰ | open / close experiment menu |
+| mouse / ↑↓ + Enter / `1`–`9` | navigate menu |
+| `N` / `B` | next / previous step |
+| `SPACE` | autoplay · `R` reset · `F` fullscreen · `Q` quit |
 
-Remote learning environments
+## Project structure
 
-Concept visualization for beginners
+```
+CircuitVerse/
+├── python_app/
+│   ├── ar_main.py      # engine, state machine, app loop, fullscreen, catalog
+│   ├── menu.py         # cinematic glass experiment menu
+│   ├── hud.py          # glassmorphism + gradient + glow rendering
+│   └── effects.py      # particles, bloom, ambient motes, vignette, lock rings
+├── domains/
+│   ├── physics.py      # 9 physics scenes (waves, optics, EM, modern)
+│   ├── chemistry.py    # titration, electrolysis, flame test, reaction rate
+│   ├── biology.py      # cell, DNA, neuron, photosynthesis
+│   └── mechanics.py    # pendulum, projectile (legacy, still available)
+├── circuit_engine/     # electronics solver (kept for future circuit experiments)
+├── experiments/        # 17 experiment JSONs
+├── markers/            # printable ArUco markers 0–16 + combined PDF sheet
+└── requirements.txt
+```
 
-AR-based engineering education
+## Adding an experiment
 
-👨‍🏫 Mentor
+1. Add a `Scene` subclass in the relevant `domains/*.py`.
+2. Register its `type` in `domains/__init__.py`.
+3. Drop a JSON in `experiments/` and add it to `EXPERIMENT_CATALOG` (and `EXPERIMENT_FILES` for a marker).
 
-Dr. Angayarkanni V
+The menu, HUD, fullscreen, and step machine pick it up automatically.
 
-👨‍💻 Developer
+## Author
 
-Anshul Pagar
-B.Tech CSE
-SRM Institute of Science and Technology
-
-🌟 Future Improvements
-
-Mobile AR implementation
-
-3D circuit visualization
-
-Web-based AR version
-
-Fault detection in circuits
-
-Real-time current flow animation
-
-📜 License
-
-This project is developed for academic and educational purposes.
+**Anshul Pagar** · B.Tech CSE · SRM Institute of Science and Technology
