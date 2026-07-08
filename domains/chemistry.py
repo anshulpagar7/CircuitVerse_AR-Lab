@@ -297,3 +297,165 @@ class ElectrolysisScene(Scene):
             text(frame, v, x0 + 232 - vw, yy, 0.48, col, 1, FONT_S)
         text(frame, "2 H2O -> 2 H2 + O2", x0 + 16, y0 + 58 + 30 * len(rows) + 22,
              0.5, PURPLE, 1, FONT_S)
+
+
+# ═══════════════════════════════ flame test ════════════════════════
+class FlameTestScene(Scene):
+    """Metal-ion flame test — Bunsen burner, characteristic flame colours."""
+
+    IONS = {
+        "Li": ("Lithium", (60, 60, 220), "crimson"),
+        "Na": ("Sodium", (0, 200, 255), "yellow"),
+        "K":  ("Potassium", (200, 100, 200), "lilac"),
+        "Cu": ("Copper", (180, 220, 80), "blue-green"),
+        "Ca": ("Calcium", (40, 120, 240), "orange-red"),
+    }
+
+    def __init__(self, raw, W, H):
+        super().__init__(raw, W, H)
+        self.sequence = self.sim.get("ions", ["Li", "Na", "K", "Cu", "Ca"])
+        self.rng = np.random.default_rng(9)
+        self.particles = []
+
+    def render(self, frame):
+        cx = int(self.W * 0.40); base_y = int(self.H * 0.82)
+        t = self.elapsed()
+        # which ion is currently in the flame
+        idx = int(t / 2.2) % len(self.sequence) if "test" in self.animations else 0
+        ion = self.sequence[idx]
+        name, col, desc = self.IONS[ion]
+
+        # burner barrel
+        cv2.rectangle(frame, (cx - 18, base_y - 90), (cx + 18, base_y), (90, 90, 100), -1, cv2.LINE_AA)
+        cv2.rectangle(frame, (cx - 40, base_y), (cx + 40, base_y + 16), (70, 70, 80), -1, cv2.LINE_AA)
+
+        # flame — layered teardrops, tinted by ion
+        if "test" in self.animations:
+            for k in range(3):
+                fh = 150 - k * 34
+                fw = 30 - k * 7
+                flame = frame.copy()
+                pts = np.array([(cx, base_y - 90 - fh),
+                                (cx - fw, base_y - 90 - fh // 2),
+                                (cx - fw // 2, base_y - 90),
+                                (cx + fw // 2, base_y - 90),
+                                (cx + fw, base_y - 90 - fh // 2)], np.int32)
+                fc = col if k == 0 else tuple(min(255, int(c * 1.3)) for c in col)
+                cv2.fillPoly(flame, [pts], fc)
+                cv2.addWeighted(flame, 0.5 - k * 0.1, frame, 0.5 + k * 0.1, 0, frame)
+            # emission particles
+            for _ in range(3):
+                if self.rng.random() < 0.6:
+                    self.particles.append([cx + self.rng.integers(-14, 14),
+                                           base_y - 90, self.rng.uniform(1.5, 3.5), col])
+            alive = []
+            for p in self.particles:
+                p[1] -= p[2]; p[0] += self.rng.uniform(-1, 1)
+                if p[1] > base_y - 260:
+                    cv2.circle(frame, (int(p[0]), int(p[1])), 2, p[3], -1, cv2.LINE_AA)
+                    alive.append(p)
+            self.particles = alive[-120:]
+
+        # nichrome wire dipping in
+        cv2.line(frame, (cx + 90, base_y - 200), (cx, base_y - 150), (180, 180, 190), 2, cv2.LINE_AA)
+
+        # spectral hint bar
+        chip(frame, f"{name}  →  {desc.upper()} FLAME", cx - 120, base_y + 30,
+             tuple(min(255, int(c)) for c in col), 0.44)
+
+        rows = [(self.IONS[s][0][:10], self.IONS[s][2], self.IONS[s][1])
+                for s in self.sequence]
+        rows.insert(0, ("CURRENT", name, col))
+        x0 = self.W - 264; y0 = 92; h = 58 + 30 * len(rows)
+        glass_panel(frame, x0, y0, 248, h, radius=16, border=col)
+        text(frame, "FLAME TEST", x0 + 16, y0 + 28, 0.5, col, 1, FONT_S)
+        cv2.line(frame, (x0 + 16, y0 + 38), (x0 + 232, y0 + 38), (70, 60, 45), 1)
+        for i, (k, v, c) in enumerate(rows):
+            yy = y0 + 64 + i * 30
+            text(frame, k, x0 + 16, yy, 0.44, MUTED if i else TEXT, 1, FONT_S)
+            vw, _ = text_size(v, 0.46, 1, FONT_S)
+            text(frame, v, x0 + 232 - vw, yy, 0.46, c, 1, FONT_S)
+        return frame
+
+
+# ═══════════════════════════ reaction rate ═════════════════════════
+class ReactionRateScene(Scene):
+    """Collision theory — temperature raises molecule speed & reaction rate."""
+
+    def __init__(self, raw, W, H):
+        super().__init__(raw, W, H)
+        self.rng = np.random.default_rng(2)
+        self.mols = None
+        self.reacted = 0
+
+    def _init_mols(self, cx, cy, r):
+        n = 26
+        self.mols = np.zeros((n, 5), np.float32)   # x,y,vx,vy,type
+        for i in range(n):
+            a = self.rng.uniform(0, 2 * math.pi); rr = self.rng.uniform(0, r)
+            self.mols[i, 0] = cx + math.cos(a) * rr
+            self.mols[i, 1] = cy + math.sin(a) * rr
+            self.mols[i, 2] = self.rng.uniform(-1, 1)
+            self.mols[i, 3] = self.rng.uniform(-1, 1)
+            self.mols[i, 4] = i % 2
+
+    def render(self, frame):
+        cx, cy = int(self.W * 0.36), int(self.H * 0.52)
+        R = 170
+        t = self.elapsed()
+        # temperature ramps during animation
+        temp = 300 + (min(t, 10) * 40 if "heat" in self.animations else 0)
+        speed = temp / 300.0
+
+        # beaker
+        cv2.circle(frame, (cx, cy), R, (120, 140, 200), 2, cv2.LINE_AA)
+        ov = frame.copy(); cv2.circle(ov, (cx, cy), R, (120, 100, 60), -1)
+        cv2.addWeighted(ov, 0.10, frame, 0.90, 0, frame)
+
+        if self.mols is None:
+            self._init_mols(cx, cy, R - 20)
+
+        # move molecules
+        for m in self.mols:
+            m[0] += m[2] * speed * 2.4
+            m[1] += m[3] * speed * 2.4
+            d = math.hypot(m[0] - cx, m[1] - cy)
+            if d > R - 12:
+                nx, ny = (m[0] - cx) / d, (m[1] - cy) / d
+                dot = m[2] * nx + m[3] * ny
+                m[2] -= 2 * dot * nx; m[3] -= 2 * dot * ny
+            col = (80, 200, 120) if m[4] == 0 else (80, 140, 240)
+            cv2.circle(frame, (int(m[0]), int(m[1])), 7, col, -1, cv2.LINE_AA)
+            # heat glow at high T
+            if speed > 1.3:
+                cv2.circle(frame, (int(m[0]), int(m[1])), 10,
+                           (60, 120, 240), 1, cv2.LINE_AA)
+
+        # flame under beaker when heating
+        if "heat" in self.animations:
+            by = cy + R + 6
+            for k in range(3):
+                fw = 26 - k * 7
+                pts = np.array([(cx, by + 60 - k * 12), (cx - fw, by + 20),
+                                (cx + fw, by + 20)], np.int32)
+                fl = frame.copy()
+                cv2.fillPoly(fl, [pts], (40, 140, 250) if k else (60, 200, 255))
+                cv2.addWeighted(fl, 0.5, frame, 0.5, 0, frame)
+
+        rate = speed ** 2
+        x0 = self.W - 264; y0 = 92
+        rows = [("TEMPERATURE", f"{temp:.0f} K", RED if speed > 1.3 else AMBER),
+                ("MOLECULE v", f"{speed:.2f}×", ACCENT),
+                ("COLLISIONS", f"{'HIGH' if speed>1.3 else 'normal'}", GREEN),
+                ("RATE", f"{rate:.2f}×", GREEN)]
+        glass_panel(frame, x0, y0, 248, 58 + 30 * len(rows), radius=16, border=ACCENT)
+        text(frame, "REACTION RATE", x0 + 16, y0 + 28, 0.5, ACCENT, 1, FONT_S)
+        cv2.line(frame, (x0 + 16, y0 + 38), (x0 + 232, y0 + 38), (70, 60, 45), 1)
+        for i, (k, v, c) in enumerate(rows):
+            yy = y0 + 64 + i * 30
+            text(frame, k, x0 + 16, yy, 0.44, MUTED, 1, FONT_S)
+            vw, _ = text_size(v, 0.48, 1, FONT_S)
+            text(frame, v, x0 + 232 - vw, yy, 0.48, c, 1, FONT_S)
+        text(frame, "Higher T → faster collisions", x0 + 16, y0 + 58 + 30 * len(rows) + 20,
+             0.42, PURPLE, 1, FONT_S)
+        return frame
