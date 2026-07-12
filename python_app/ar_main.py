@@ -742,10 +742,10 @@ class CircuitVerseAR:
                 ("F", "toggle fullscreen    Q  quit")]
 
         # vertical layout offsets from the card top
-        y_welcome = 78
-        y_title   = 128
-        y_chip    = 148
-        y_desc    = 198
+        y_welcome = 46
+        y_title   = 96
+        y_chip    = 116
+        y_desc    = 166
         y_ctrl_hd = y_desc + len(lines) * 28 + 26
         y_rows    = y_ctrl_hd + 42
         y_btn     = y_rows + len(rows) * 32 + 20
