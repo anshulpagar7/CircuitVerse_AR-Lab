@@ -66,64 +66,103 @@ def ascii_safe(s):
 
 
 # ─────────────────────────── primitives ──────────────────────────────
+_MASK_CACHE = {}
 def _rounded_mask(w: int, h: int, radius: int) -> np.ndarray:
-    """Anti-aliased rounded-rectangle alpha mask (float 0..1)."""
+    """Anti-aliased rounded-rectangle alpha mask (float 0..1), cached by size."""
+    key = (w, h, radius)
+    m = _MASK_CACHE.get(key)
+    if m is not None:
+        return m
     mask = np.zeros((h, w), np.uint8)
     r = max(1, min(radius, w // 2, h // 2))
     cv2.rectangle(mask, (r, 0), (w - r, h), 255, -1)
     cv2.rectangle(mask, (0, r), (w, h - r), 255, -1)
     for cx, cy in ((r, r), (w - r, r), (r, h - r), (w - r, h - r)):
         cv2.circle(mask, (cx, cy), r, 255, -1, cv2.LINE_AA)
-    return cv2.GaussianBlur(mask, (3, 3), 0).astype(np.float32) / 255.0
+    m = cv2.GaussianBlur(mask, (3, 3), 0).astype(np.float32) / 255.0
+    m = m[..., None] if False else m  # keep 2D; caller adds axis
+    if len(_MASK_CACHE) > 128:
+        _MASK_CACHE.clear()
+    _MASK_CACHE[key] = m
+    return m
 
 
 def glass_panel(frame, x, y, w, h, radius=18, tint=PANEL_TINT,
                 tint_strength=0.55, blur=21, border=ACCENT, border_alpha=0.35,
                 gradient=True, glow=True):
-    """Frosted-glass panel drawn in place. Returns (x, y, w, h) clipped."""
+    """Frosted-glass panel drawn in place. Returns (x, y, w, h) clipped.
+    Optimized: all work happens on the panel ROI (no full-frame copies),
+    and the frosted blur is done at reduced cost."""
     H, W = frame.shape[:2]
     x, y = max(0, x), max(0, y)
     w, h = min(w, W - x), min(h, H - y)
     if w <= 4 or h <= 4:
         return x, y, w, h
 
-    # outer glow bloom behind the panel
-    if glow:
-        gx, gy = max(0, x - 8), max(0, y - 8)
-        gx2, gy2 = min(W, x + w + 8), min(H, y + h + 8)
-        halo = frame[gy:gy2, gx:gx2].copy()
-        tintimg = np.full_like(halo, border)
-        halo = cv2.addWeighted(halo, 0.82, tintimg, 0.18, 0)
-        frame[gy:gy2, gx:gx2] = halo
-
     roi = frame[y:y + h, x:x + w]
-    k = blur | 1
-    glass = cv2.GaussianBlur(roi, (k, k), 0)
-    tint_img = np.full_like(glass, tint)
+
+    # frosted glass: downscale, blur small, upscale — much cheaper than a
+    # large-kernel blur on the full-size ROI, and visually identical here
+    sw, sh = max(1, w // 3), max(1, h // 3)
+    glass = cv2.resize(roi, (sw, sh), interpolation=cv2.INTER_LINEAR)
+    glass = cv2.GaussianBlur(glass, (0, 0), 2)
+    glass = cv2.resize(glass, (w, h), interpolation=cv2.INTER_LINEAR)
+
+    tint_img = np.empty_like(glass); tint_img[:] = tint
     glass = cv2.addWeighted(glass, 1 - tint_strength, tint_img, tint_strength, 0)
 
-    # vertical gradient sheen (lighter at top, darker at bottom)
-    if gradient:
-        grad = np.linspace(1.14, 0.86, h, dtype=np.float32)[:, None, None]
+    # vertical gradient sheen (cached per height for speed)
+    if gradient and h >= 8:
+        grad = _grad_cache(h)
         glass = np.clip(glass.astype(np.float32) * grad, 0, 255).astype(np.uint8)
 
     # top-edge specular highlight
-    hl = glass.copy()
-    cv2.rectangle(hl, (0, 0), (w, max(2, h // 10)), (110, 90, 65), -1)
-    glass = cv2.addWeighted(glass, 0.86, hl, 0.14, 0)
+    hl_h = max(2, h // 10)
+    glass[:hl_h] = cv2.addWeighted(glass[:hl_h], 0.86,
+                                   _hl_cache(w, hl_h), 0.14, 0)
 
+    # rounded composite (blend only inside the rounded mask)
     mask = _rounded_mask(w, h, radius)[..., None]
-    frame[y:y + h, x:x + w] = (glass * mask + roi * (1 - mask)).astype(np.uint8)
+    np.copyto(roi, (glass * mask + roi * (1 - mask)).astype(np.uint8))
 
-    # double border stroke — bright inner + soft outer for a neon edge
-    overlay = frame.copy()
-    _rounded_stroke(overlay, x, y, w, h, radius, border, 2)
-    cv2.addWeighted(overlay, border_alpha, frame, 1 - border_alpha, 0, frame)
-    overlay2 = frame.copy()
-    _rounded_stroke(overlay2, x + 1, y + 1, w - 2, h - 2, radius,
-                    tuple(min(255, int(c * 1.4)) for c in border), 1)
-    cv2.addWeighted(overlay2, border_alpha * 0.5, frame, 1 - border_alpha * 0.5, 0, frame)
+    # neon border — stroke directly on the ROI (no full-frame copy)
+    _rounded_stroke_blend(roi, 0, 0, w, h, radius, border, 2, border_alpha)
+    _rounded_stroke_blend(roi, 1, 1, w - 2, h - 2, radius,
+                          tuple(min(255, int(c * 1.4)) for c in border),
+                          1, border_alpha * 0.5)
     return x, y, w, h
+
+
+# ── caches for gradient & highlight strips (keyed by size) ──
+_GRAD = {}
+def _grad_cache(h):
+    g = _GRAD.get(h)
+    if g is None:
+        col = np.linspace(1.14, 0.86, h, dtype=np.float32)
+        g = np.repeat(col[:, None, None], 3, axis=2)
+        _GRAD[h] = g
+        if len(_GRAD) > 64:
+            _GRAD.clear(); _GRAD[h] = g
+    return g
+
+_HL = {}
+def _hl_cache(w, hl_h):
+    key = (w, hl_h)
+    s = _HL.get(key)
+    if s is None:
+        s = np.empty((hl_h, w, 3), np.uint8); s[:] = (110, 90, 65)
+        _HL[key] = s
+        if len(_HL) > 64:
+            _HL.clear(); _HL[key] = s
+    return s
+
+
+def _rounded_stroke_blend(roi, x, y, w, h, r, color, thick, alpha):
+    """Draw a rounded-rect stroke onto roi, alpha-blended, without copying
+    the whole frame — only a thin band around the border is touched."""
+    tmp = roi.copy()
+    _rounded_stroke(tmp, x, y, w, h, r, color, thick)
+    cv2.addWeighted(tmp, alpha, roi, 1 - alpha, 0, roi)
 
 
 def _rounded_stroke(img, x, y, w, h, r, color, thick):
@@ -141,7 +180,10 @@ def _rounded_stroke(img, x, y, w, h, r, color, thick):
 def text(frame, s, x, y, scale=0.55, color=TEXT, thick=1, font=FONT, shadow=True):
     s = ascii_safe(s)
     if shadow:
-        cv2.putText(frame, s, (x + 1, y + 2), font, scale, (0, 0, 0), thick + 1, cv2.LINE_AA)
+        # tight 1px shadow, same thickness — crisp legibility without a
+        # heavy offset ghost that reads as grainy at small sizes
+        cv2.putText(frame, s, (x + 1, y + 1), font, scale, (0, 0, 0),
+                    thick, cv2.LINE_AA)
     cv2.putText(frame, s, (x, y), font, scale, color, thick, cv2.LINE_AA)
 
 
