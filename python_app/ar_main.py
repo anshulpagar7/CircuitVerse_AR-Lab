@@ -373,7 +373,7 @@ class CircuitVerseAR:
         self.autoplay = False
         self.last_autoplay = 0.0
         self.flow = effects.CurrentFlow()
-        self.ambient = effects.Ambient(n=64)
+        self.ambient = effects.Ambient(n=32)
         self.layout = Layout(self.W, self.H)
         self.t_start = time.time()
         self.toast = None                          # (text, expiry)
@@ -381,6 +381,10 @@ class CircuitVerseAR:
         # experiment menu (primary UI; markers still work as fallback)
         self.menu = ExperimentMenu(EXPERIMENT_CATALOG)
         self.menu.on_pick = self.select_experiment
+
+        # welcome overlay shown on launch until dismissed
+        self.show_welcome = True
+        self._welcome_btn = (0, 0, 0, 0)
 
     # ─────────────────────────── state ────────────────────────────
     def reset_experiment_state(self):
@@ -507,9 +511,8 @@ class CircuitVerseAR:
 
     def render(self, frame, corners_list, ids):
         t = time.time() - self.t_start
-        effects.vignette(frame, 0.34)
+        effects.vignette(frame, 0.26)
         self.ambient.draw(frame, tint=self._domain_tint())
-        effects.scanline(frame, t)
 
         # marker lock rings
         if ids is not None:
@@ -525,7 +528,7 @@ class CircuitVerseAR:
                 self._draw_explain(frame)
             self._draw_toast(frame)
             self._draw_controls(frame)
-            effects.bloom(frame, strength=0.16)
+            effects.bloom(frame, strength=0.14)
             effects.corner_flourish(frame, t)
             return frame
 
@@ -586,7 +589,7 @@ class CircuitVerseAR:
             self._draw_explain(frame)
         self._draw_toast(frame)
         self._draw_controls(frame)
-        effects.bloom(frame, strength=0.16)
+        effects.bloom(frame, strength=0.14)
         effects.corner_flourish(frame, time.time() - self.t_start)
         return frame
 
@@ -717,6 +720,63 @@ class CircuitVerseAR:
         text(frame, s, self.W - tw - 24, self.H - 18, 0.42,
              GREEN if self.autoplay else MUTED, 1, hud.FONT_S)
 
+    def _draw_welcome(self, frame):
+        """Full-screen welcome/onboarding overlay shown on launch."""
+        # dim the whole frame
+        dim = frame.copy()
+        dim[:] = (12, 10, 8)
+        cv2.addWeighted(dim, 0.55, frame, 0.45, 0, frame)
+
+        # centered card
+        cw, ch = 720, 470
+        cx = (self.W - cw) // 2
+        cy = (self.H - ch) // 2
+        glass_panel(frame, cx, cy, cw, ch, radius=22, border=ACCENT,
+                    tint_strength=0.72, blur=25)
+
+        # title
+        text(frame, "WELCOME TO", cx + 48, cy + 66, 0.7, MUTED, 1, hud.FONT_S)
+        text(frame, "CIRCUIT", cx + 48, cy + 120, 1.3, TEXT, 2)
+        w1, _ = text_size("CIRCUIT", 1.3, 2)
+        text(frame, "VERSE", cx + 48 + w1, cy + 120, 1.3, ACCENT, 2)
+        chip(frame, "v2.0  AR SCIENCE LAB", cx + 52, cy + 140, PURPLE, 0.44)
+
+        # description
+        desc = ("An Augmented Reality science lab. Point your camera at a "
+                "marker, or open the menu, to explore live interactive "
+                "experiments across Physics, Chemistry, Biology and Circuits.")
+        lines = hud.wrap_px(desc, cw - 96, scale=0.52)
+        for i, ln in enumerate(lines):
+            text(frame, ln, cx + 48, cy + 196 + i * 28, 0.52, TEXT, 1, hud.FONT_S)
+
+        # controls list
+        cy2 = cy + 196 + len(lines) * 28 + 22
+        text(frame, "CONTROLS", cx + 48, cy2, 0.5, ACCENT, 1, hud.FONT_S)
+        cv2.line(frame, (cx + 48, cy2 + 10), (cx + cw - 48, cy2 + 10),
+                 (70, 60, 45), 1)
+        rows = [("M", "open the experiment menu"),
+                ("N / B", "next / previous step"),
+                ("SPACE", "autoplay steps    R  reset"),
+                ("F", "toggle fullscreen    Q  quit")]
+        for i, (k, v) in enumerate(rows):
+            yy = cy2 + 40 + i * 30
+            chip(frame, k, cx + 48, yy - 18, ACCENT, 0.42)
+            text(frame, v, cx + 168, yy, 0.48, TEXT, 1, hud.FONT_S)
+
+        # continue button
+        bw, bh = 260, 52
+        bx = cx + (cw - bw) // 2
+        by = cy + ch - bh - 26
+        self._welcome_btn = (bx, by, bw, bh)
+        mx, my = self.menu.mouse
+        hovered = bx <= mx <= bx + bw and by <= my <= by + bh
+        glass_panel(frame, bx, by, bw, bh, radius=14, border=GREEN,
+                    border_alpha=0.9 if hovered else 0.55,
+                    tint_strength=0.6 if hovered else 0.45)
+        label = "CONTINUE   (press N)"
+        tw, _ = text_size(label, 0.5, 1, hud.FONT_S)
+        text(frame, label, bx + (bw - tw) // 2, by + 33, 0.5, GREEN, 1, hud.FONT_S)
+
     # ═══════════════════════════ main loop ════════════════════════
     def _on_mouse(self, event, x, y, flags, param):
         """Map window pixel coords to render-space before the menu sees them.
@@ -735,6 +795,16 @@ class CircuitVerseAR:
                         y = int((y - off_y) / scale)
             except Exception:
                 pass
+
+        # welcome overlay owns the mouse until dismissed
+        if self.show_welcome:
+            self.menu.mouse = (x, y)  # reuse for hover state on the button
+            if event == cv2.EVENT_LBUTTONDOWN:
+                bx, by, bw, bh = self._welcome_btn
+                if bx <= x <= bx + bw and by <= y <= by + bh:
+                    self.show_welcome = False
+            return
+
         self.menu.handle_mouse(event, x, y, flags, param)
 
     def _mirror_corners(self, corners):
@@ -812,10 +882,13 @@ class CircuitVerseAR:
                 self.handle_marker(ids)
 
             frame = self.render(frame, corners, ids)
-            self.menu.draw(frame)
+            if self.show_welcome:
+                self._draw_welcome(frame)
+            else:
+                self.menu.draw(frame)
             cv2.imshow(win, frame)
 
-            if self.autoplay and self.steps and \
+            if self.autoplay and self.steps and not self.show_welcome and \
                time.time() - self.last_autoplay > AUTOPLAY_INTERVAL:
                 self.last_autoplay = time.time()
                 if self.current_step < len(self.steps) - 1:
@@ -826,6 +899,15 @@ class CircuitVerseAR:
             key = cv2.waitKey(1) & 0xFF
             if key == 255:
                 continue
+
+            # welcome overlay intercepts all input until dismissed
+            if self.show_welcome:
+                if key in (ord("n"), 13, 10, ord(" ")):
+                    self.show_welcome = False
+                elif key == ord("q"):
+                    break
+                continue
+
             # menu gets first crack at the key; if consumed, skip app controls
             if self.menu.handle_key(key):
                 continue
