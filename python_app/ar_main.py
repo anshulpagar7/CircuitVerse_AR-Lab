@@ -727,46 +727,59 @@ class CircuitVerseAR:
         dim[:] = (12, 10, 8)
         cv2.addWeighted(dim, 0.55, frame, 0.45, 0, frame)
 
-        # centered card
-        cw, ch = 720, 470
+        cw = 720
         cx = (self.W - cw) // 2
-        cy = (self.H - ch) // 2
-        glass_panel(frame, cx, cy, cw, ch, radius=22, border=ACCENT,
-                    tint_strength=0.72, blur=25)
+        pad = 44
 
-        # title
-        text(frame, "WELCOME TO", cx + 48, cy + 66, 0.7, MUTED, 1, hud.FONT_S)
-        text(frame, "CIRCUIT", cx + 48, cy + 120, 1.3, TEXT, 2)
-        w1, _ = text_size("CIRCUIT", 1.3, 2)
-        text(frame, "VERSE", cx + 48 + w1, cy + 120, 1.3, ACCENT, 2)
-        chip(frame, "v2.0  AR SCIENCE LAB", cx + 52, cy + 140, PURPLE, 0.44)
-
-        # description
+        # measure description first so the card height fits its content exactly
         desc = ("An Augmented Reality science lab. Point your camera at a "
                 "marker, or open the menu, to explore live interactive "
                 "experiments across Physics, Chemistry, Biology and Circuits.")
-        lines = hud.wrap_px(desc, cw - 96, scale=0.52)
-        for i, ln in enumerate(lines):
-            text(frame, ln, cx + 48, cy + 196 + i * 28, 0.52, TEXT, 1, hud.FONT_S)
-
-        # controls list
-        cy2 = cy + 196 + len(lines) * 28 + 22
-        text(frame, "CONTROLS", cx + 48, cy2, 0.5, ACCENT, 1, hud.FONT_S)
-        cv2.line(frame, (cx + 48, cy2 + 10), (cx + cw - 48, cy2 + 10),
-                 (70, 60, 45), 1)
+        lines = hud.wrap_px(desc, cw - 2 * pad, scale=0.52)
         rows = [("M", "open the experiment menu"),
                 ("N / B", "next / previous step"),
                 ("SPACE", "autoplay steps    R  reset"),
                 ("F", "toggle fullscreen    Q  quit")]
+
+        # vertical layout offsets from the card top
+        y_welcome = 78
+        y_title   = 128
+        y_chip    = 148
+        y_desc    = 198
+        y_ctrl_hd = y_desc + len(lines) * 28 + 26
+        y_rows    = y_ctrl_hd + 42
+        y_btn     = y_rows + len(rows) * 32 + 20
+        bh = 52
+        ch = y_btn + bh + 30                    # exact content height + bottom pad
+
+        cy = (self.H - ch) // 2
+        glass_panel(frame, cx, cy, cw, ch, radius=22, border=ACCENT,
+                    tint_strength=0.72, blur=25)
+
+        # title block
+        text(frame, "WELCOME TO", cx + pad, cy + y_welcome, 0.66, MUTED, 1, hud.FONT_S)
+        text(frame, "CIRCUIT", cx + pad, cy + y_title, 1.25, TEXT, 2)
+        w1, _ = text_size("CIRCUIT", 1.25, 2)
+        text(frame, "VERSE", cx + pad + w1, cy + y_title, 1.25, ACCENT, 2)
+        chip(frame, "v2.0  AR SCIENCE LAB", cx + pad + 4, cy + y_chip, PURPLE, 0.44)
+
+        # description
+        for i, ln in enumerate(lines):
+            text(frame, ln, cx + pad, cy + y_desc + i * 28, 0.52, TEXT, 1, hud.FONT_S)
+
+        # controls list
+        text(frame, "CONTROLS", cx + pad, cy + y_ctrl_hd, 0.5, ACCENT, 1, hud.FONT_S)
+        cv2.line(frame, (cx + pad, cy + y_ctrl_hd + 10),
+                 (cx + cw - pad, cy + y_ctrl_hd + 10), (70, 60, 45), 1)
         for i, (k, v) in enumerate(rows):
-            yy = cy2 + 40 + i * 30
-            chip(frame, k, cx + 48, yy - 18, ACCENT, 0.42)
-            text(frame, v, cx + 168, yy, 0.48, TEXT, 1, hud.FONT_S)
+            yy = cy + y_rows + i * 32
+            chip(frame, k, cx + pad, yy - 18, ACCENT, 0.42)
+            text(frame, v, cx + pad + 124, yy, 0.48, TEXT, 1, hud.FONT_S)
 
         # continue button
-        bw, bh = 260, 52
+        bw = 260
         bx = cx + (cw - bw) // 2
-        by = cy + ch - bh - 26
+        by = cy + y_btn
         self._welcome_btn = (bx, by, bw, bh)
         mx, my = self.menu.mouse
         hovered = bx <= mx <= bx + bw and by <= my <= by + bh
