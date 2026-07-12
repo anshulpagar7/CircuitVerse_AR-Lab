@@ -83,17 +83,19 @@ def scanline(frame, t):
 
 
 def vignette(frame, strength=0.35):
-    """Cached radial vignette for cinematic depth."""
+    """Cached radial vignette for cinematic depth (uint8 multiply, fast)."""
     H, W = frame.shape[:2]
-    key = (H, W, strength)
+    key = (H, W, round(strength, 3))
     if getattr(vignette, "_key", None) != key:
         kx = cv2.getGaussianKernel(W, W * 0.7)
         ky = cv2.getGaussianKernel(H, H * 0.7)
         m = ky @ kx.T
         m = (m / m.max())
-        vignette._mask = (1 - strength) + strength * m[..., None]
+        m = (1 - strength) + strength * m
+        # store as 3-channel float32 once; multiply is done in-place uint8
+        vignette._mask = np.repeat(m[..., None].astype(np.float32), 3, axis=2)
         vignette._key = key
-    np.multiply(frame, vignette._mask, out=frame, casting="unsafe")
+    cv2.multiply(frame, vignette._mask, dst=frame, dtype=cv2.CV_8U)
 
 
 class Ambient:
@@ -116,7 +118,8 @@ class Ambient:
         if self.p is None:
             self._init(W, H)
         t = time.time()
-        overlay = frame.copy()
+        # draw motes directly with per-pixel blend via small circles at low
+        # opacity — cheaper than copying the whole frame each call
         for i in range(self.n):
             x, y, sp, sz = self.p[i]
             y -= sp * 0.016
@@ -125,18 +128,21 @@ class Ambient:
                 y = H + 4
                 x = self.rng.uniform(0, W)
             self.p[i, 0], self.p[i, 1] = x, y
-            a = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.5 + i))
+            a = 0.25 + 0.25 * (0.5 + 0.5 * math.sin(t * 1.5 + i))
             col = tuple(int(c * a) for c in tint)
-            cv2.circle(overlay, (int(x), int(y)), int(sz), col, -1, cv2.LINE_AA)
-        cv2.addWeighted(overlay, 0.10, frame, 0.90, 0, frame)
+            cv2.circle(frame, (int(x), int(y)), int(sz), col, -1, cv2.LINE_AA)
 
 
-def bloom(frame, strength=0.18, thresh=205):
-    """Cheap bloom: blur the bright regions and add them back."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+def bloom(frame, strength=0.18, thresh=210):
+    """Fast bloom: extract bright areas at 1/4 res, blur, upscale, add back.
+    Downscaling makes the Gaussian ~16x cheaper and the result smoother."""
+    h, w = frame.shape[:2]
+    small = cv2.resize(frame, (w // 4, h // 4), interpolation=cv2.INTER_LINEAR)
+    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
     _, mask = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)
-    bright = cv2.bitwise_and(frame, frame, mask=mask)
-    bright = cv2.GaussianBlur(bright, (0, 0), 9)
+    bright = cv2.bitwise_and(small, small, mask=mask)
+    bright = cv2.GaussianBlur(bright, (0, 0), 4)
+    bright = cv2.resize(bright, (w, h), interpolation=cv2.INTER_LINEAR)
     cv2.addWeighted(frame, 1.0, bright, strength, 0, frame)
 
 
