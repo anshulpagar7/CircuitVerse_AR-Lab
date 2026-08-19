@@ -588,7 +588,7 @@ class CircuitVerseAR:
         nebula = np.zeros((H, W), np.float32)
         for _ in range(3):
             cx = rng.uniform(0.15, 0.85) * W
-            cy = rng.uniform(0.05, 0.55) * H
+            cy = rng.uniform(0.04, 0.38) * H
             sx = rng.uniform(0.18, 0.36) * W
             sy = rng.uniform(0.14, 0.28) * H
             amp = rng.uniform(0.55, 1.0)
@@ -641,11 +641,26 @@ class CircuitVerseAR:
                   rng.uniform(0, math.tau), rng.uniform(0.6, 1.6))
                  for _ in range(55)]
 
-        # slow drifting glow orbs (soft bokeh), parametric motion per-frame
-        orbs = [(rng.uniform(0.1, 0.9) * W, rng.uniform(0.1, 0.7) * H,
-                 rng.uniform(40, 90), rng.uniform(0.05, 0.14),
-                 rng.uniform(0, math.tau), rng.uniform(18, 34))
-                for _ in range(5)]
+        # slow drifting glow orbs (soft bokeh) — tucked into the four
+        # corners only (small jitter + a short drift radius) so the middle
+        # of the frame, where components and domain scenes render, stays
+        # clear of them
+        corner_boxes = [
+            (0.03, 0.17, 0.06, 0.22),   # top-left    (x0, x1, y0, y1)
+            (0.83, 0.97, 0.06, 0.22),   # top-right
+            (0.03, 0.17, 0.68, 0.90),   # bottom-left
+            (0.83, 0.97, 0.68, 0.90),   # bottom-right
+        ]
+        orbs = []
+        for i in range(8):
+            x0, x1, y0, y1 = corner_boxes[i % len(corner_boxes)]
+            cx = rng.uniform(x0, x1) * W
+            cy = rng.uniform(y0, y1) * H
+            orbit_r = rng.uniform(8, 22)        # short drift — stays in its corner
+            speed = rng.uniform(0.05, 0.14)
+            phase = rng.uniform(0, math.tau)
+            size = rng.uniform(14, 26)
+            orbs.append((cx, cy, orbit_r, speed, phase, size))
 
         return img, traces, stars, orbs
 
