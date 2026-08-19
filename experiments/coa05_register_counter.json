@@ -1,0 +1,22 @@
+{
+  "id": 25,
+  "domain": "coa",
+  "type": "register_counter",
+  "name": "Registers and Counters",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Four flip-flops sharing a clock form a 4-bit register / counter."
+    },
+    {
+      "type": "animate",
+      "target": "count",
+      "text": "Each clock pulse increments the count from 0 to 15, then wraps around."
+    },
+    {
+      "type": "explain",
+      "text": "A synchronous counter updates all bits together on the same clock edge."
+    }
+  ]
+}

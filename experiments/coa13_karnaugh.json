@@ -1,0 +1,22 @@
+{
+  "id": 33,
+  "domain": "coa",
+  "type": "karnaugh",
+  "name": "Karnaugh Map",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A 4-variable K-map places minterms in Gray-code order so neighbours differ by one bit."
+    },
+    {
+      "type": "animate",
+      "target": "group",
+      "text": "Adjacent 1s are grouped in powers of two to simplify the expression."
+    },
+    {
+      "type": "explain",
+      "text": "Each group of size 2^k eliminates k variables, giving a minimal SOP form."
+    }
+  ]
+}

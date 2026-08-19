@@ -1,0 +1,26 @@
+{
+  "id": 27,
+  "domain": "coa",
+  "type": "booth",
+  "name": "Booth's Multiplier",
+  "simulation": {
+    "m": 3,
+    "q": -4
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Booth's algorithm multiplies signed numbers using recoding."
+    },
+    {
+      "type": "animate",
+      "target": "run",
+      "text": "Step through: inspect Q0 Q-1, add/subtract the multiplicand, then shift."
+    },
+    {
+      "type": "explain",
+      "text": "Booth handles negative numbers directly and reduces the number of additions."
+    }
+  ]
+}

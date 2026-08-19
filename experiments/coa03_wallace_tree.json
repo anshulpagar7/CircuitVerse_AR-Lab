@@ -1,0 +1,26 @@
+{
+  "id": 23,
+  "domain": "coa",
+  "type": "wallace_tree",
+  "name": "Wallace Tree Adder",
+  "simulation": {
+    "a": 13,
+    "b": 11
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Wallace tree reduces many partial products using layers of 3:2 adders."
+    },
+    {
+      "type": "animate",
+      "target": "reduce",
+      "text": "Each layer compresses the dot diagram until only two rows remain."
+    },
+    {
+      "type": "explain",
+      "text": "Reduction happens in O(log n) layers, making multiplication very fast."
+    }
+  ]
+}

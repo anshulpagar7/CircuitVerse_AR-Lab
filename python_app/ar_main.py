@@ -65,6 +65,22 @@ EXPERIMENT_CATALOG = {
         (19, "Parallel — Current Division"),
         (20, "Wheatstone Bridge"),
     ],
+    "COA": [
+        (21, "Ripple Carry Adder"),
+        (22, "Carry-Look-Ahead Adder"),
+        (23, "Wallace Tree Adder"),
+        (24, "Synthesis of Flip Flop"),
+        (25, "Registers and Counters"),
+        (26, "Combinational Multipliers"),
+        (27, "Booth's Multiplier"),
+        (28, "Arithmetic Logic Unit"),
+        (29, "Memory Design"),
+        (30, "Associative Cache Design"),
+        (31, "Direct Mapped Cache Design"),
+        (32, "CPU Design"),
+        (33, "Karnaugh Map"),
+        (34, "Quine-McClusky Algorithm"),
+    ],
 }
 from hud import (ACCENT, PURPLE, GREEN, AMBER, RED, TEXT, MUTED,
                  glass_panel, text, text_size, chip, progress_bar, wrap_text,
@@ -100,6 +116,21 @@ EXPERIMENT_FILES = {
     18: "cir2_series.json",
     19: "cir3_parallel.json",
     20: "cir4_wheatstone.json",
+    # ── COA (markers 21–34) ──
+    21: "coa01_ripple_carry.json",
+    22: "coa02_carry_lookahead.json",
+    23: "coa03_wallace_tree.json",
+    24: "coa04_flipflop.json",
+    25: "coa05_register_counter.json",
+    26: "coa06_comb_multiplier.json",
+    27: "coa07_booth.json",
+    28: "coa08_alu.json",
+    29: "coa09_memory.json",
+    30: "coa10_assoc_cache.json",
+    31: "coa11_direct_cache.json",
+    32: "coa12_cpu.json",
+    33: "coa13_karnaugh.json",
+    34: "coa14_quine_mccluskey.json",
 }
 
 DOMAIN_ACCENT = {
@@ -386,6 +417,12 @@ class CircuitVerseAR:
         self.show_welcome = True
         self._welcome_btn = (0, 0, 0, 0)
 
+        # AR mode: True = live camera feed behind the scene; False = clean
+        # studio backdrop (good for demos / presentations). Toggle with 'C'.
+        self.ar_mode = True
+        self._ar_btn = (0, 0, 0, 0)
+        self._studio_bg = None
+
     # ─────────────────────────── state ────────────────────────────
     def reset_experiment_state(self):
         self.circuit = None
@@ -506,8 +543,54 @@ class CircuitVerseAR:
                 "biology":   (200, 160, 255),
                 "physics":   (255, 190, 120),
                 "circuits":  (150, 255, 180),
+                "coa":       (170, 255, 150),
                 "mechanics": (120, 200, 255),
                 "electronics": (255, 200, 120)}.get(self.domain, (255, 200, 120))
+
+    def _studio_frame(self):
+        """A clean professional backdrop used when AR (camera) mode is off.
+        Deep gradient + subtle perspective grid + soft radial spotlight, tinted
+        toward the active subject so rendered visuals stand out crisply."""
+        W, H = self.W, self.H
+        tint = self._domain_tint()
+        key = (W, H, self.domain)
+        if self._studio_bg is not None and self._studio_bg[0] == key:
+            return self._studio_bg[1].copy()
+
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        # vertical gradient: darker top, slightly lifted bottom
+        base = np.zeros((H, W, 3), np.float32)
+        g = yy / H
+        base[..., 0] = 22 + 18 * g          # B
+        base[..., 1] = 26 + 20 * g          # G
+        base[..., 2] = 34 + 26 * g          # R
+        # soft radial spotlight slightly above centre
+        cx, cy = W * 0.42, H * 0.46
+        d = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+        spot = np.exp(-(d / (W * 0.55)) ** 2)
+        tintv = np.array(tint, np.float32) / 255.0
+        base += (spot[..., None] * 26) * tintv[None, None, :]
+        img = np.clip(base, 0, 255).astype(np.uint8)
+
+        # perspective floor grid (subtle, receding lines)
+        grid = img.copy()
+        horizon = int(H * 0.52)
+        gcol = tuple(int(c * 0.35) for c in tint)
+        for i in range(-10, 11):
+            x_top = int(W * 0.5 + i * 26)
+            x_bot = int(W * 0.5 + i * 150)
+            cv2.line(grid, (x_top, horizon), (x_bot, H), gcol, 1, cv2.LINE_AA)
+        for j in range(1, 9):
+            yb = horizon + int((H - horizon) * (j / 9.0) ** 1.6)
+            cv2.line(grid, (0, yb), (W, yb), gcol, 1, cv2.LINE_AA)
+        cv2.addWeighted(grid, 0.22, img, 0.78, 0, img)
+
+        # faint corner branding watermark
+        text(img, "CIRCUITVERSE  ·  STUDIO MODE", 24, 34, 0.5,
+             tuple(int(c * 0.8) for c in tint), 1, hud.FONT_S)
+
+        self._studio_bg = (key, img)
+        return img.copy()
 
     def render(self, frame, corners_list, ids):
         t = time.time() - self.t_start
@@ -713,12 +796,39 @@ class CircuitVerseAR:
         text(frame, msg, x0 + 20, self.H - 94, 0.5, AMBER, 1, hud.FONT_S)
 
     def _draw_controls(self, frame):
-        s = "M menu   N next   B back   R reset   SPACE auto   Q quit"
+        s = "M menu   N next   B back   R reset   SPACE auto   C camera   Q quit"
         if self.autoplay:
             s = "AUTOPLAY ON   ·   " + s
         tw, _ = text_size(s, 0.42, 1, hud.FONT_S)
         text(frame, s, self.W - tw - 24, self.H - 18, 0.42,
              GREEN if self.autoplay else MUTED, 1, hud.FONT_S)
+
+    def _draw_fps(self, frame):
+        fps = getattr(self, "fps", 0.0)
+        if fps <= 0:
+            return
+        col = GREEN if fps >= 25 else (AMBER if fps >= 15 else RED)
+        text(frame, f"{fps:.0f} FPS", 24, self.H - 18, 0.42, col, 1, hud.FONT_S)
+
+    def _draw_ar_toggle(self, frame):
+        """Pill button (top-right) that toggles the live camera / AR mode."""
+        on = self.ar_mode
+        label = "AR: ON" if on else "AR: OFF"
+        col = GREEN if on else AMBER
+        bw, bh = 118, 40
+        bx = self.W - bw - 20
+        by = 78
+        self._ar_btn = (bx, by, bw, bh)
+        mx, my = self.menu.mouse
+        hovered = bx <= mx <= bx + bw and by <= my <= by + bh
+        glass_panel(frame, bx, by, bw, bh, radius=20, border=col,
+                    border_alpha=0.95 if hovered else 0.6,
+                    tint_strength=0.55 if hovered else 0.4)
+        # status dot
+        cv2.circle(frame, (bx + 22, by + bh // 2), 7, col, -1, cv2.LINE_AA)
+        if on:
+            cv2.circle(frame, (bx + 22, by + bh // 2), 11, col, 1, cv2.LINE_AA)
+        text(frame, label, bx + 40, by + bh // 2 + 5, 0.46, col, 1, hud.FONT_S)
 
     def _draw_welcome(self, frame):
         """Full-screen welcome/onboarding overlay shown on launch."""
@@ -739,6 +849,7 @@ class CircuitVerseAR:
         rows = [("M", "open the experiment menu"),
                 ("N / B", "next / previous step"),
                 ("SPACE", "autoplay steps    R  reset"),
+                ("C", "camera / AR mode on-off"),
                 ("F", "toggle fullscreen    Q  quit")]
 
         # vertical layout offsets from the card top
@@ -818,6 +929,13 @@ class CircuitVerseAR:
                     self.show_welcome = False
             return
 
+        # AR-mode toggle button (top-right) gets first crack at clicks
+        if event == cv2.EVENT_LBUTTONDOWN and not self.menu.expanded:
+            bx, by, bw, bh = self._ar_btn
+            if bx <= x <= bx + bw and by <= y <= by + bh:
+                self.ar_mode = not self.ar_mode
+                return
+
         self.menu.handle_mouse(event, x, y, flags, param)
 
     def _mirror_corners(self, corners):
@@ -861,8 +979,22 @@ class CircuitVerseAR:
             print("  - Make sure a webcam is connected and not used by another app.")
             print("  - Try a different index: CircuitVerseAR(camera_index=1).run()\n")
             return
+
+        # ── camera tuning for smooth, high-quality capture ──
+        # MJPG lets most webcams deliver 30 fps at 720p; the default (raw YUY2)
+        # often caps at ~10-15 fps and looks soft. This is the biggest win.
+        try:
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        except Exception:
+            pass
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.W)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.H)
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        # keep only the newest frame so we never fall behind (low latency)
+        try:
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        except Exception:
+            pass
 
         win = "CircuitVerse v2.0 - AR Lab"
         self._win_name = win
@@ -874,32 +1006,56 @@ class CircuitVerseAR:
         self.fullscreen = False
         print(__doc__)
 
+        frame_i = 0
+        fps_t = time.time()
+        fps_n = 0
+        self.fps = 0.0
+
         while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("Camera read failed."); break
-            frame = cv2.resize(frame, (self.W, self.H))
-
-            # IMPORTANT: detect on the UN-mirrored frame. ArUco markers are
-            # asymmetric, so a mirrored image never matches the dictionary.
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            corners, ids = self.detect(gray)
-
-            # now mirror the frame for a natural selfie view, and mirror the
-            # detected corner x-coords to match the flipped image
-            frame = cv2.flip(frame, 1)
-            corners = self._mirror_corners(corners)
-
-            # markers act only as a fallback; ignore them while menu is open
-            if not self.menu.expanded:
-                self.handle_marker(ids)
+            if self.ar_mode:
+                ret, frame = cap.read()
+                if not ret:
+                    # camera hiccup — fall back to studio frame rather than dying
+                    frame = self._studio_frame()
+                    corners, ids = None, None
+                else:
+                    # only resize if the camera didn't give us the target size
+                    if frame.shape[1] != self.W or frame.shape[0] != self.H:
+                        frame = cv2.resize(frame, (self.W, self.H))
+                    # detect markers on the UN-mirrored frame (ArUco is
+                    # asymmetric; a mirrored image never matches). Detection
+                    # every other frame is imperceptible and lifts the frame rate.
+                    if not self.menu.expanded and not self.show_welcome and (frame_i & 1) == 0:
+                        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                        corners, ids = self.detect(gray)
+                        self._last_corners, self._last_ids = corners, ids
+                    else:
+                        corners = getattr(self, "_last_corners", None)
+                        ids = getattr(self, "_last_ids", None)
+                    # mirror for a natural selfie view + mirror corner coords
+                    frame = cv2.flip(frame, 1)
+                    corners = self._mirror_corners(corners)
+                    if not self.menu.expanded:
+                        self.handle_marker(ids)
+            else:
+                # studio mode — no camera, clean backdrop, menu-driven only
+                frame = self._studio_frame()
+                corners, ids = None, None
 
             frame = self.render(frame, corners, ids)
             if self.show_welcome:
                 self._draw_welcome(frame)
             else:
                 self.menu.draw(frame)
+                self._draw_fps(frame)
+                self._draw_ar_toggle(frame)
             cv2.imshow(win, frame)
+
+            # fps meter
+            fps_n += 1; frame_i += 1
+            if time.time() - fps_t >= 0.5:
+                self.fps = fps_n / (time.time() - fps_t)
+                fps_t = time.time(); fps_n = 0
 
             if self.autoplay and self.steps and not self.show_welcome and \
                time.time() - self.last_autoplay > AUTOPLAY_INTERVAL:
@@ -941,6 +1097,8 @@ class CircuitVerseAR:
                 cv2.setWindowProperty(
                     win, cv2.WND_PROP_FULLSCREEN,
                     cv2.WINDOW_FULLSCREEN if self.fullscreen else cv2.WINDOW_NORMAL)
+            elif key == ord("c"):
+                self.ar_mode = not self.ar_mode
             elif key == ord("q"):
                 break
 

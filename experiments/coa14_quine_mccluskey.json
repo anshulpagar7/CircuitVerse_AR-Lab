@@ -1,0 +1,22 @@
+{
+  "id": 34,
+  "domain": "coa",
+  "type": "quine_mccluskey",
+  "name": "Quine - Mc Clusky Algorithm",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Quine-McCluskey minimizes functions in a table instead of a map."
+    },
+    {
+      "type": "animate",
+      "target": "run",
+      "text": "Step 1: group minterms by their number of 1s. Step 2: combine adjacent ones."
+    },
+    {
+      "type": "explain",
+      "text": "Terms differing in exactly one bit combine into prime implicants - great for many variables."
+    }
+  ]
+}

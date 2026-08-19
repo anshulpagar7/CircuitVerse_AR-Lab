@@ -23,6 +23,7 @@ DOMAIN_META = {
     "Chemistry": {"color": (180, 105, 255),  "icon": "C", "key": "chemistry"},
     "Biology":   {"color": (200, 120, 180),  "icon": "B", "key": "biology"},
     "Circuits":  {"color": (129, 185, 16),   "icon": "E", "key": "circuits"},
+    "COA":       {"color": (170, 255, 130),  "icon": "D", "key": "coa"},
 }
 
 

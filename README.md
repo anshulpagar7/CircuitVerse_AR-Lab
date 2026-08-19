@@ -1,16 +1,16 @@
 # CircuitVerse v2 — AR Multi-Domain Science Laboratory
 
 An Augmented Reality science lab that turns any webcam into an interactive,
-physics-accurate learning platform spanning **Physics, Chemistry, Biology, and Circuits**.
+physics-accurate learning platform spanning **Physics, Chemistry, Biology, Circuits, and Computer Organization & Architecture (COA)**.
 Browse experiments from a cinematic glass menu, or show a printed ArUco marker.
 
-![version](https://img.shields.io/badge/version-2.0-00d4ff) ![python](https://img.shields.io/badge/python-3.9%E2%80%933.12-blue) ![experiments](https://img.shields.io/badge/experiments-21-7c3aed) ![domains](https://img.shields.io/badge/subjects-4-f59e0b)
+![version](https://img.shields.io/badge/version-2.0-00d4ff) ![python](https://img.shields.io/badge/python-3.9%E2%80%933.12-blue) ![experiments](https://img.shields.io/badge/experiments-35-7c3aed) ![domains](https://img.shields.io/badge/subjects-5-f59e0b)
 
 ## Two ways in
 
 1. **Menu (primary)** — click `☰ MENU` or press `M`, pick a subject, pick an
    experiment. Full mouse + keyboard (arrows, Enter, number keys).
-2. **ArUco markers (fallback)** — show marker 0–20 to the camera; it loads
+2. **ArUco markers (fallback)** — show marker 0–34 to the camera; it loads
    automatically. Print `markers/CircuitVerse_Markers.pdf` at 100% scale.
 
 Both paths run the same engine, fullscreen, with the camera mirrored.
@@ -49,6 +49,14 @@ Photosynthesis (chloroplast, light → glucose + O₂)
 Each circuit is drawn as animated vector art with analog dial meters whose
 needles swing to the live reading, glowing wires, and current-flow particles.
 Physics is computed by `circuit_engine.solver`.
+
+### 💻 COA — Computer Organization & Architecture (14)
+Digital-logic and architecture experiments drawn as live animated diagrams:
+Ripple Carry Adder, Carry-Look-Ahead Adder, Wallace Tree, D Flip-Flop (with
+timing diagram), Registers & Counters, Array Multiplier, Booth's Multiplier,
+ALU, Memory Design, Associative Cache, Direct-Mapped Cache, CPU Datapath,
+Karnaugh Map, and Quine-McCluskey. Features bit-cells, logic gates, signal
+flow, comparators, and step-by-step reduction/pipeline animations.
 
 ## What makes it special
 

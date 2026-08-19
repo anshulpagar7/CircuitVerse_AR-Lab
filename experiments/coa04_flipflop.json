@@ -1,0 +1,22 @@
+{
+  "id": 24,
+  "domain": "coa",
+  "type": "flipflop",
+  "name": "Synthesis of Flip Flop",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A D flip-flop stores one bit, updating only on the clock edge."
+    },
+    {
+      "type": "animate",
+      "target": "clock",
+      "text": "Run the clock. Q captures D on each rising edge - see the timing diagram."
+    },
+    {
+      "type": "explain",
+      "text": "Flip-flops are the basic memory element of all sequential circuits."
+    }
+  ]
+}

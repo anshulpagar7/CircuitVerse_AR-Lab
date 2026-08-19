@@ -1,0 +1,22 @@
+{
+  "id": 29,
+  "domain": "coa",
+  "type": "memory",
+  "name": "Memory Design",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A memory array stores words; an address decoder selects one word line."
+    },
+    {
+      "type": "animate",
+      "target": "access",
+      "text": "Change the address - the decoder activates exactly one row and reads its data."
+    },
+    {
+      "type": "explain",
+      "text": "An n-bit address selects one of 2^n words through the decoder."
+    }
+  ]
+}

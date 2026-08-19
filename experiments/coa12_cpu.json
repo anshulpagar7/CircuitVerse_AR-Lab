@@ -1,0 +1,22 @@
+{
+  "id": 32,
+  "domain": "coa",
+  "type": "cpu",
+  "name": "CPU Design",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A simple CPU datapath: PC, instruction memory, register file, ALU, data memory."
+    },
+    {
+      "type": "animate",
+      "target": "run",
+      "text": "Follow one instruction through fetch, decode, execute, memory, and write-back."
+    },
+    {
+      "type": "explain",
+      "text": "The control unit sequences these stages every clock cycle."
+    }
+  ]
+}

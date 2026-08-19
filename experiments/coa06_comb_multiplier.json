@@ -1,0 +1,26 @@
+{
+  "id": 26,
+  "domain": "coa",
+  "type": "comb_multiplier",
+  "name": "Combinational Multipliers",
+  "simulation": {
+    "a": 13,
+    "b": 11
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "An array multiplier ANDs every bit of A with every bit of B."
+    },
+    {
+      "type": "animate",
+      "target": "multiply",
+      "text": "Partial products fill the grid, then are summed by carry-save adders."
+    },
+    {
+      "type": "explain",
+      "text": "Purely combinational: no clock needed, the product appears after gate delays."
+    }
+  ]
+}

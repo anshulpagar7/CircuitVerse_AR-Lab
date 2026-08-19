@@ -1,0 +1,26 @@
+{
+  "id": 21,
+  "domain": "coa",
+  "type": "ripple_carry",
+  "name": "Ripple Carry Adder",
+  "simulation": {
+    "a": 11,
+    "b": 6
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A 4-bit ripple carry adder chains four full adders."
+    },
+    {
+      "type": "animate",
+      "target": "add",
+      "text": "Add A + B. Watch the carry ripple from LSB to MSB, one stage at a time."
+    },
+    {
+      "type": "explain",
+      "text": "Each full adder must wait for the carry from the previous stage - so delay grows with bit width."
+    }
+  ]
+}

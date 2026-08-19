@@ -82,6 +82,28 @@ def create_scene(raw: dict, W: int, H: int):
                 "series": SeriesResistorScene,
                 "parallel": ParallelResistorScene,
                 "wheatstone": WheatstoneScene}[raw["type"]](raw, W, H)
+    if domain == "coa":
+        from .coa import (RippleCarryScene, CarryLookAheadScene, WallaceTreeScene,
+                          FlipFlopScene, RegisterCounterScene, CombMultiplierScene,
+                          BoothScene, ALUScene, MemoryDesignScene,
+                          AssociativeCacheScene, DirectMappedScene, CPUScene,
+                          KarnaughScene, QuineMcCluskeyScene)
+        return {
+            "ripple_carry": RippleCarryScene,
+            "carry_lookahead": CarryLookAheadScene,
+            "wallace_tree": WallaceTreeScene,
+            "flipflop": FlipFlopScene,
+            "register_counter": RegisterCounterScene,
+            "comb_multiplier": CombMultiplierScene,
+            "booth": BoothScene,
+            "alu": ALUScene,
+            "memory": MemoryDesignScene,
+            "assoc_cache": AssociativeCacheScene,
+            "direct_cache": DirectMappedScene,
+            "cpu": CPUScene,
+            "karnaugh": KarnaughScene,
+            "quine_mccluskey": QuineMcCluskeyScene,
+        }[raw["type"]](raw, W, H)
     if domain == "mechanics":
         from .mechanics import PendulumScene, ProjectileScene
         return {"pendulum": PendulumScene,

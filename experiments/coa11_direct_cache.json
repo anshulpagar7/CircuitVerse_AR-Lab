@@ -1,0 +1,22 @@
+{
+  "id": 31,
+  "domain": "coa",
+  "type": "direct_cache",
+  "name": "Direct Mapped Cache Design",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Address splits into TAG and INDEX; the index picks exactly one line."
+    },
+    {
+      "type": "animate",
+      "target": "lookup",
+      "text": "Only that one line's tag is compared - hit if it matches, else miss."
+    },
+    {
+      "type": "explain",
+      "text": "Direct mapping is simple and fast but can suffer conflict misses."
+    }
+  ]
+}

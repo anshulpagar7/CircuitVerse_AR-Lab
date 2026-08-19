@@ -1,0 +1,22 @@
+{
+  "id": 30,
+  "domain": "coa",
+  "type": "assoc_cache",
+  "name": "Associative Cache Design",
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "A fully associative cache can store a block in ANY line."
+    },
+    {
+      "type": "animate",
+      "target": "lookup",
+      "text": "The requested tag is compared against every line at the same time."
+    },
+    {
+      "type": "explain",
+      "text": "Parallel comparators give flexibility but cost more hardware than direct mapping."
+    }
+  ]
+}

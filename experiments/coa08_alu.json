@@ -1,0 +1,26 @@
+{
+  "id": 28,
+  "domain": "coa",
+  "type": "alu",
+  "name": "Arithmetic Logic Unit",
+  "simulation": {
+    "a": 10,
+    "b": 6
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "The ALU takes A, B and an opcode, and outputs one operation's result."
+    },
+    {
+      "type": "animate",
+      "target": "compute",
+      "text": "Cycle through opcodes: ADD, SUB, AND, OR, XOR, NOT - one result each."
+    },
+    {
+      "type": "explain",
+      "text": "The opcode is a control signal that selects which internal circuit drives the output."
+    }
+  ]
+}

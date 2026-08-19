@@ -1,0 +1,26 @@
+{
+  "id": 22,
+  "domain": "coa",
+  "type": "carry_lookahead",
+  "name": "Carry-Look-Ahead Adder",
+  "simulation": {
+    "a": 11,
+    "b": 6
+  },
+  "steps": [
+    {
+      "type": "show_component",
+      "target": "circuit",
+      "text": "Each bit computes Generate (Gi=Ai.Bi) and Propagate (Pi=Ai xor Bi)."
+    },
+    {
+      "type": "animate",
+      "target": "add",
+      "text": "The carry look-ahead logic computes ALL carries in parallel from G and P."
+    },
+    {
+      "type": "explain",
+      "text": "No waiting for ripple - carries are produced simultaneously, so the adder is much faster."
+    }
+  ]
+}
