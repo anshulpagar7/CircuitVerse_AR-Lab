@@ -13,6 +13,7 @@ import os
 import json
 import time
 import math
+import random
 from pathlib import Path
 
 import numpy as np
@@ -548,49 +549,145 @@ class CircuitVerseAR:
                 "electronics": (255, 200, 120)}.get(self.domain, (255, 200, 120))
 
     def _studio_frame(self):
-        """A clean professional backdrop used when AR (camera) mode is off.
-        Deep gradient + subtle perspective grid + soft radial spotlight, tinted
-        toward the active subject so rendered visuals stand out crisply."""
+        """A lively backdrop used when AR (camera) mode is off: a deep
+        gradient with soft nebula glow, a faint receding floor grid, and
+        dim PCB-style circuit traces, tinted toward the active subject.
+        On top of that static art, twinkling stars, slowly drifting glow
+        orbs, and light pulses travel the traces — cheap per-frame draws
+        that keep it animated without touching the HUD's readability.
+        The expensive art is cached per (size, domain); only the overlay
+        redraws every frame."""
         W, H = self.W, self.H
         tint = self._domain_tint()
         key = (W, H, self.domain)
-        if self._studio_bg is not None and self._studio_bg[0] == key:
-            return self._studio_bg[1].copy()
+        if self._studio_bg is None or self._studio_bg[0] != key:
+            self._studio_bg = (key, self._build_studio_base(W, H, tint))
+        base, traces, stars, orbs = self._studio_bg[1]
+        return self._studio_animate(base, traces, stars, orbs, tint,
+                                     time.time() - self.t_start)
 
+    def _build_studio_base(self, W, H, tint):
+        """One-time (per size/domain) static art: vertical gradient, soft
+        nebula glow blobs, a faint receding floor grid, and dim right-angle
+        circuit-trace silkscreen. Also returns the randomised trace paths /
+        star / orb layouts that _studio_animate() draws on top each frame.
+        Seeded from the domain name so the same subject always gets the
+        same layout instead of reshuffling every time it's reloaded."""
+        rng = random.Random(abs(hash(self.domain)) % 100000)
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-        # vertical gradient: darker top, slightly lifted bottom
+
+        # deep vertical gradient, cooler near the top
         base = np.zeros((H, W, 3), np.float32)
         g = yy / H
-        base[..., 0] = 22 + 18 * g          # B
-        base[..., 1] = 26 + 20 * g          # G
-        base[..., 2] = 34 + 26 * g          # R
-        # soft radial spotlight slightly above centre
-        cx, cy = W * 0.42, H * 0.46
-        d = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
-        spot = np.exp(-(d / (W * 0.55)) ** 2)
+        base[..., 0] = 14 + 16 * g          # B
+        base[..., 1] = 16 + 18 * g          # G
+        base[..., 2] = 22 + 24 * g          # R
+
+        # soft nebula glow blobs, tinted toward the active subject
         tintv = np.array(tint, np.float32) / 255.0
-        base += (spot[..., None] * 26) * tintv[None, None, :]
+        nebula = np.zeros((H, W), np.float32)
+        for _ in range(3):
+            cx = rng.uniform(0.15, 0.85) * W
+            cy = rng.uniform(0.05, 0.55) * H
+            sx = rng.uniform(0.18, 0.36) * W
+            sy = rng.uniform(0.14, 0.28) * H
+            amp = rng.uniform(0.55, 1.0)
+            nebula += amp * np.exp(-(((xx - cx) / sx) ** 2 + ((yy - cy) / sy) ** 2))
+        nebula = np.clip(nebula, 0, 1.3)
+        base += (nebula[..., None] * 26.0) * tintv[None, None, :]
         img = np.clip(base, 0, 255).astype(np.uint8)
 
-        # perspective floor grid (subtle, receding lines)
-        grid = img.copy()
+        # faint perspective floor grid (subtle, receding lines)
         horizon = int(H * 0.52)
-        gcol = tuple(int(c * 0.35) for c in tint)
-        for i in range(-10, 11):
-            x_top = int(W * 0.5 + i * 26)
-            x_bot = int(W * 0.5 + i * 150)
-            cv2.line(grid, (x_top, horizon), (x_bot, H), gcol, 1, cv2.LINE_AA)
-        for j in range(1, 9):
-            yb = horizon + int((H - horizon) * (j / 9.0) ** 1.6)
-            cv2.line(grid, (0, yb), (W, yb), gcol, 1, cv2.LINE_AA)
-        cv2.addWeighted(grid, 0.22, img, 0.78, 0, img)
+        gcol = tuple(int(c * 0.22) for c in tint)
+        grid_layer = np.zeros_like(img)
+        for i in range(-9, 10):
+            x_top = int(W * 0.5 + i * 28)
+            x_bot = int(W * 0.5 + i * 160)
+            cv2.line(grid_layer, (x_top, horizon), (x_bot, H), gcol, 1, cv2.LINE_AA)
+        for j in range(1, 8):
+            yb = horizon + int((H - horizon) * (j / 8.0) ** 1.7)
+            cv2.line(grid_layer, (0, yb), (W, yb), gcol, 1, cv2.LINE_AA)
+        cv2.addWeighted(grid_layer, 0.45, img, 1.0, 0, img)
 
-        # faint corner branding watermark
-        text(img, "CIRCUITVERSE  ·  STUDIO MODE", 24, 34, 0.5,
-             tuple(int(c * 0.8) for c in tint), 1, hud.FONT_S)
+        # dim circuit-trace silkscreen (right-angle PCB-style paths, kept
+        # above the horizon so it never competes with the main scene)
+        traces = []
+        for _ in range(5):
+            x = rng.uniform(0.05, 0.92) * W
+            y = rng.uniform(0.08, 0.42) * H
+            pts = [(x, y)]
+            for _ in range(rng.randint(2, 4)):
+                if rng.random() < 0.5:
+                    x += rng.choice([-1, 1]) * rng.uniform(60, 180)
+                else:
+                    y += rng.choice([-1, 1]) * rng.uniform(30, 90)
+                x = min(max(x, 10), W - 10)
+                y = min(max(y, 10), H * 0.5)
+                pts.append((x, y))
+            traces.append(pts)
 
-        self._studio_bg = (key, img)
-        return img.copy()
+        trace_layer = np.zeros_like(img)
+        tcol = tuple(int(c * 0.30) for c in tint)
+        for pts in traces:
+            ipts = [(int(px), int(py)) for px, py in pts]
+            cv2.polylines(trace_layer, [np.array(ipts, np.int32)], False, tcol, 1, cv2.LINE_AA)
+            for px, py in ipts:
+                cv2.circle(trace_layer, (px, py), 3, tcol, 1, cv2.LINE_AA)
+        cv2.addWeighted(trace_layer, 0.7, img, 1.0, 0, img)
+
+        # fixed star positions above the horizon; twinkle is animated later
+        stars = [(rng.uniform(0, W), rng.uniform(0, horizon * 0.9),
+                  rng.uniform(0, math.tau), rng.uniform(0.6, 1.6))
+                 for _ in range(55)]
+
+        # slow drifting glow orbs (soft bokeh), parametric motion per-frame
+        orbs = [(rng.uniform(0.1, 0.9) * W, rng.uniform(0.1, 0.7) * H,
+                 rng.uniform(40, 90), rng.uniform(0.05, 0.14),
+                 rng.uniform(0, math.tau), rng.uniform(18, 34))
+                for _ in range(5)]
+
+        return img, traces, stars, orbs
+
+    def _studio_animate(self, base, traces, stars, orbs, tint, t):
+        """Cheap per-frame overlay on a copy of the cached static art:
+        twinkling stars, drifting glow orbs, and light pulses that travel
+        along the baked circuit traces. All draws are a handful of circles
+        and run well under a millisecond, so this stays real-time."""
+        img = base.copy()
+
+        for x, y, phase, speed in stars:
+            b = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * speed + phase))
+            col = tuple(int(min(255, v * b * 0.9 + 40 * b)) for v in (210, 210, 225))
+            cv2.circle(img, (int(x), int(y)), 1, col, -1, cv2.LINE_AA)
+
+        for cx, cy, orbit_r, speed, phase, size in orbs:
+            ox = cx + orbit_r * math.cos(t * speed + phase)
+            oy = cy + orbit_r * 0.4 * math.sin(t * speed * 1.3 + phase)
+            for k in range(4, 0, -1):
+                col = tuple(int(ch * (0.05 * k)) for ch in tint)
+                cv2.circle(img, (int(ox), int(oy)), int(size * k / 4), col, -1, cv2.LINE_AA)
+
+        for i, pts in enumerate(traces):
+            segs = list(zip(pts[:-1], pts[1:]))
+            seg_lens = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in segs]
+            total = sum(seg_lens)
+            if total <= 0:
+                continue
+            speed = 0.14 + 0.03 * (i % 3)
+            target = ((t * speed) + i * 0.37) % 1.0 * total
+            acc, px, py = 0.0, pts[0][0], pts[0][1]
+            for (a, b), d in zip(segs, seg_lens):
+                if acc + d >= target or d == 0:
+                    f = 0 if d == 0 else (target - acc) / d
+                    px, py = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+                    break
+                acc += d
+            cv2.circle(img, (int(px), int(py)), 5, tint, -1, cv2.LINE_AA)
+            cv2.circle(img, (int(px), int(py)), 9,
+                       tuple(int(ch * 0.5) for ch in tint), 1, cv2.LINE_AA)
+
+        return img
 
     def render(self, frame, corners_list, ids):
         t = time.time() - self.t_start
